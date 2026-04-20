@@ -81,108 +81,114 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
         appBar: AppBar(
           title: const Text('Shop Details'),
         ),
-        body: BlocConsumer<ShopBloc, ShopState>(
-          listener: (context, state) {
-            if (state is ShopLoaded) {
-              _updateControllers(state.shop);
-            } else if (state is ShopOperationSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Shop details saved!'),
-                  backgroundColor: Colors.green));
-              context.pop();
-            } else if (state is ShopError) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(state.message), backgroundColor: Colors.red));
-            }
-          },
-          buildWhen: (previous, current) =>
-              current is ShopLoading || current is ShopLoaded,
-          builder: (context, state) {
-            if (state is ShopLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: SafeArea(
+          top: false,
+          child: BlocConsumer<ShopBloc, ShopState>(
+            listener: (context, state) {
+              if (state is ShopLoaded) {
+                _updateControllers(state.shop);
+              } else if (state is ShopOperationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Shop details saved!'),
+                    backgroundColor: Colors.green));
+                context.pop();
+              } else if (state is ShopError) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(state.message), backgroundColor: Colors.red));
+              }
+            },
+            buildWhen: (previous, current) =>
+                current is ShopLoading || current is ShopLoaded,
+            builder: (context, state) {
+              if (state is ShopLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('General Information',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                          color: AppTheme.primaryColor.withValues(alpha: 0.8),
-                        )),
-                    const SizedBox(
-                      height: 5,
-                    ),
-                    Text(
-                      'These details will appear on your digital and printed receipts.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                    ),
-                    const SizedBox(height: 24),
-                    const InputLabel(text: 'Shop Name'),
-                    _buildTextField(
-                      controller: _nameController,
-                      hint: 'e.g. QuickMart Superstore',
-                      validator: AppValidators.required('Required'),
-                    ),
-                    const SizedBox(height: 15),
-                    const InputLabel(text: 'Address Line 1'),
-                    _buildTextField(
-                      controller: _address1Controller,
-                      hint: 'Samrajpet, Mecheri',
-                      validator: AppValidators.required('Required'),
-                    ),
-                    const SizedBox(height: 15),
-                    const InputLabel(text: 'Address Line 2 (Optional)'),
-                    _buildTextField(
-                      controller: _address2Controller,
-                      hint: 'Salem - 636453',
-                    ),
-                    const SizedBox(height: 15),
-                    const InputLabel(text: 'Phone Number'),
-                    _buildTextField(
-                      controller: _phoneController,
-                      hint: '+91 7010674588',
-                      keyboardType: TextInputType.phone,
-                      validator: AppValidators.required('Required'),
-                    ),
-                    const SizedBox(height: 15),
-                    const InputLabel(text: 'UPI ID'),
-                    _buildTextField(
-                      controller: _upiController,
-                      hint: 'dineshsowndar@oksbi',
-                    ),
-                    const SizedBox(height: 15),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const InputLabel(text: 'Receipt Footer Text'),
-                        Text('Max 150 chars',
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey[400])),
-                      ],
-                    ),
-                    _buildTextField(
-                      controller: _footerController,
-                      hint: 'Thank you, Visit again!!!',
-                      maxLines: 2,
-                      maxLength: 60,
-                    ),
-                  ],
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('General Information',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                            color: AppTheme.primaryColor.withValues(alpha: 0.8),
+                          )),
+                      const SizedBox(
+                        height: 5,
+                      ),
+                      Text(
+                        'These details will appear on your digital and printed receipts.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                      const SizedBox(height: 24),
+                      const InputLabel(text: 'Shop Name'),
+                      _buildTextField(
+                        controller: _nameController,
+                        hint: 'e.g. QuickMart Superstore',
+                        validator: AppValidators.required('Required'),
+                      ),
+                      const SizedBox(height: 15),
+                      const InputLabel(text: 'Address Line 1'),
+                      _buildTextField(
+                        controller: _address1Controller,
+                        hint: 'Samrajpet, Mecheri',
+                        validator: AppValidators.required('Required'),
+                      ),
+                      const SizedBox(height: 15),
+                      const InputLabel(text: 'Address Line 2 (Optional)'),
+                      _buildTextField(
+                        controller: _address2Controller,
+                        hint: 'Salem - 636453',
+                      ),
+                      const SizedBox(height: 15),
+                      const InputLabel(text: 'Phone Number'),
+                      _buildTextField(
+                        controller: _phoneController,
+                        hint: '+91 7010674588',
+                        keyboardType: TextInputType.phone,
+                        validator: AppValidators.required('Required'),
+                      ),
+                      const SizedBox(height: 15),
+                      const InputLabel(text: 'UPI ID'),
+                      _buildTextField(
+                        controller: _upiController,
+                        hint: 'dineshsowndar@oksbi',
+                      ),
+                      const SizedBox(height: 15),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const InputLabel(text: 'Receipt Footer Text'),
+                          Text('Max 150 chars',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey[400])),
+                        ],
+                      ),
+                      _buildTextField(
+                        controller: _footerController,
+                        hint: 'Thank you, Visit again!!!',
+                        maxLines: 2,
+                        maxLength: 60,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-        bottomNavigationBar: PrimaryButton(
-          onPressed: _saveShop,
-          icon: Icons.save,
-          label: 'Save Details',
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: PrimaryButton(
+            onPressed: _saveShop,
+            icon: Icons.save,
+            label: 'Save Details',
+          ),
         ));
   }
 

@@ -55,62 +55,65 @@ class _ScannerPageState extends State<ScannerPage> {
           ),
           title: const Text('Scan Barcode',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-      body: Stack(
-        children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: _onDetect,
-            // Removed overlay property
-          ),
-          // Simple border overlay manually
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.transparent, width: 0),
+      body: SafeArea(
+        top: false,
+        child: Stack(
+          children: [
+            MobileScanner(
+              controller: controller,
+              onDetect: _onDetect,
+              // Removed overlay property
             ),
-            child: Center(
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.green, width: 2),
-                  // borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _corner(0),
-                          _corner(1),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _corner(3),
-                          _corner(2),
-                        ],
-                      ),
-                    ],
+            // Simple border overlay manually
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.transparent, width: 0),
+              ),
+              child: Center(
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.green, width: 2),
+                    // borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _corner(0),
+                            _corner(1),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _corner(3),
+                            _corner(2),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          const Positioned(
-            bottom: 40,
-            left: 0,
-            right: 0,
-            child: Text(
-              'Align barcode within frame',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 24,
+              left: 0,
+              right: 0,
+              child: const Text(
+                'Align barcode within frame',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,30 +1,76 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:billing_app/core/error/failure.dart';
+import 'package:billing_app/features/product/domain/entities/product.dart';
+import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
+import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
+import 'package:billing_app/features/product/presentation/bloc/product_bloc.dart';
+import 'package:billing_app/features/product/presentation/pages/add_product_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:billing_app/main.dart';
+import 'package:fpdart/fpdart.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Add product page generates an in-app barcode for grocery items',
+      (WidgetTester tester) async {
+    final repository = _FakeProductRepository();
+    final productBloc = ProductBloc(
+      getProductsUseCase: GetProductsUseCase(repository),
+      addProductUseCase: AddProductUseCase(repository),
+      updateProductUseCase: UpdateProductUseCase(repository),
+      deleteProductUseCase: DeleteProductUseCase(repository),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: productBloc,
+          child: const AddProductPage(),
+        ),
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Add Grocery Item'), findsOneWidget);
+    expect(find.text('Item Name'), findsOneWidget);
+    expect(
+      find.text(
+        'Barcode is created by the app for kirana store items. Tap Create to generate a fresh barcode.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Create'), findsOneWidget);
+
+    final barcodeField =
+        tester.widget<TextFormField>(find.byType(TextFormField).first);
+    expect(barcodeField.controller, isNotNull);
+    expect(barcodeField.controller!.text, matches(RegExp(r'^\d{13}$')));
   });
+}
+
+class _FakeProductRepository implements ProductRepository {
+  @override
+  Future<Either<Failure, void>> addProduct(Product product) async {
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteProduct(String id) async {
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
+    return const Left(CacheFailure('Not needed in this test'));
+  }
+
+  @override
+  Future<Either<Failure, List<Product>>> getProducts() async {
+    return const Right([]);
+  }
+
+  @override
+  Future<Either<Failure, void>> updateProduct(Product product) async {
+    return const Right(null);
+  }
 }

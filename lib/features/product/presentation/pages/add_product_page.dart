@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/utils/barcode_generator.dart';
 import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -19,22 +20,39 @@ class AddProductPage extends StatefulWidget {
 
 class _AddProductPageState extends State<AddProductPage> {
   final _formKey = GlobalKey<FormState>();
+  final _barcodeController = TextEditingController();
   String _name = '';
   String _barcode = '';
   double _price = 0.0;
 
-  void _scanBarcode() async {
-    final result = await context.push<String>('/scanner');
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _barcode = result;
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    _generateBarcode();
+  }
+
+  @override
+  void dispose() {
+    _barcodeController.dispose();
+    super.dispose();
+  }
+
+  void _generateBarcode() {
+    final existingBarcodes = context
+        .read<ProductBloc>()
+        .state
+        .products
+        .map((product) => product.barcode)
+        .toSet();
+
+    _barcode = BarcodeGenerator.generateProductBarcode(existingBarcodes);
+    _barcodeController.text = _barcode;
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      _barcode = _barcodeController.text;
 
       final productState = context.read<ProductBloc>().state;
       final existingProduct =
@@ -73,7 +91,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 size: 28, color: Theme.of(context).primaryColor),
             onPressed: () => context.pop(),
           ),
-          title: const Text('Add Product',
+          title: const Text('Add Grocery Item',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           centerTitle: true,
         ),
@@ -90,46 +108,48 @@ class _AddProductPageState extends State<AddProductPage> {
                     children: [
                       Expanded(
                         child: TextFormField(
-                          key: ValueKey(_barcode),
-                          initialValue: _barcode,
+                          controller: _barcodeController,
+                          readOnly: true,
                           decoration: const InputDecoration(
-                            hintText: 'Scan or enter barcode',
+                            hintText: 'Barcode generated automatically',
                           ),
-                          validator:
-                              AppValidators.required('Please enter a barcode'),
-                          onSaved: (value) => _barcode = value!,
+                          validator: AppValidators.required(
+                              'Barcode could not be generated'),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.qr_code_scanner,
-                              color: AppTheme.primaryColor),
-                          onPressed: _scanBarcode,
-                          padding: const EdgeInsets.all(14),
+                      FilledButton.icon(
+                        onPressed: () => setState(_generateBarcode),
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text('Create'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text('Tap the icon to open camera scanner',
+                  const Text(
+                      'Barcode is created by the app for kirana store items. Tap Create to generate a fresh barcode.',
                       style: TextStyle(fontSize: 12, color: Color(0xFF4C669A))),
                   const SizedBox(height: 24),
-                  const InputLabel(text: 'Product Name'),
+                  const InputLabel(text: 'Item Name'),
                   TextFormField(
                     decoration: const InputDecoration(
-                      hintText: 'e.g. Basmati Rice',
+                      hintText: 'e.g. Toor Dal 1kg',
                     ),
                     textCapitalization: TextCapitalization.words,
                     validator: AppValidators.required('Please enter a name'),
                     onSaved: (value) => _name = value!,
                   ),
                   const SizedBox(height: 24),
-                  const InputLabel(text: 'Price'),
+                  const InputLabel(text: 'Selling Price'),
                   TextFormField(
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -152,7 +172,7 @@ class _AddProductPageState extends State<AddProductPage> {
         bottomNavigationBar: PrimaryButton(
           onPressed: _submit,
           icon: Icons.add_circle,
-          label: 'Add Product',
+          label: 'Add Item',
         ));
   }
 }
