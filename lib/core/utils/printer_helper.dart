@@ -111,6 +111,7 @@ class PrinterHelper {
     required List<Map<String, dynamic>> items, // Name, Qty, Price, Total
     required double total,
     required String footer,
+    DateTime? createdAt,
   }) async {
     if (!_isConnected) return;
 
@@ -143,7 +144,7 @@ class PrinterHelper {
 
     // Date and Time
     String formattedDate =
-        DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now());
+        DateFormat('dd-MM-yyyy hh:mm a').format(createdAt ?? DateTime.now());
     bytes += _textToBytes(formattedDate);
     bytes += EscPos.lineFeed;
 

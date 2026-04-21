@@ -169,10 +169,13 @@ class _AddProductPageState extends State<AddProductPage> {
             ),
           ),
         ),
-        bottomNavigationBar: PrimaryButton(
-          onPressed: _submit,
-          icon: Icons.add_circle,
-          label: 'Add Item',
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: PrimaryButton(
+            onPressed: _submit,
+            icon: Icons.add_circle,
+            label: 'Add Item',
+          ),
         ));
   }
 }

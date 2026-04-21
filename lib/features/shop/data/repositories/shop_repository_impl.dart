@@ -7,6 +7,23 @@ import '../models/shop_model.dart';
 
 class ShopRepositoryImpl implements ShopRepository {
   static const String shopKey = 'shop_details';
+  static const Shop _legacyDefaultShop = Shop(
+    name: 'Dinesh Shop',
+    addressLine1: 'Samrajpet, Mecheri',
+    addressLine2: 'Salem - 636453',
+    phoneNumber: '+917010674588',
+    upiId: 'dineshsowndar@oksbi',
+    footerText: 'Thank you, Visit again!!!',
+  );
+
+  static const Shop _defaultShop = Shop(
+    name: 'Manibhadra Trading Company',
+    addressLine1: '',
+    addressLine2: '',
+    phoneNumber: '',
+    upiId: '',
+    footerText: 'Thank you. Visit again!',
+  );
 
   @override
   Future<Either<Failure, Shop>> getShop() async {
@@ -14,16 +31,14 @@ class ShopRepositoryImpl implements ShopRepository {
       final box = HiveDatabase.shopBox;
       final shop = box.get(shopKey);
       if (shop != null) {
+        if (shop == _legacyDefaultShop) {
+          final model = ShopModel.fromEntity(_defaultShop);
+          await box.put(shopKey, model);
+          return const Right(_defaultShop);
+        }
         return Right(shop);
       } else {
-        // Return default shop if not found
-        return const Right(Shop(
-            name: 'Dinesh Shop',
-            addressLine1: 'Samrajpet, Mecheri',
-            addressLine2: 'Salem - 636453',
-            phoneNumber: '+917010674588',
-            upiId: 'dineshsowndar@oksbi',
-            footerText: 'Thank you, Visit again!!!'));
+        return const Right(_defaultShop);
       }
     } catch (e) {
       return Left(CacheFailure(e.toString()));

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
+import '../../../../core/utils/quantity_formatter.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
 
@@ -50,8 +51,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text('Printed successfully'),
                       backgroundColor: Colors.green));
-                  // context.read<BillingBloc>().add(ClearCartEvent());
-                  // context.go('/');
+                } else if (state.saleRecorded && state.saleId != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Bill saved as ${state.saleId}'),
+                      backgroundColor: Colors.green));
                 }
               },
               builder: (context, billingState) {
@@ -119,7 +122,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         return TableRow(
                                           children: [
                                             _buildDataCell(
-                                              '${item.quantity} x ${item.product.name}',
+                                              '${QuantityFormatter.format(item.quantity)} x ${item.product.name}',
                                               TextAlign.left,
                                             ),
                                             _buildDataCell(
@@ -137,6 +140,48 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   ),
                                 ),
                               ),
+                              if (billingState.selectedCustomer != null) ...[
+                                const SizedBox(height: 18),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: const Color(0xFFE5E5EA)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Customer',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(billingState
+                                              .selectedCustomer!['name']
+                                              ?.toString() ??
+                                          ''),
+                                      Text(billingState
+                                              .selectedCustomer!['mobile']
+                                              ?.toString() ??
+                                          ''),
+                                      if ((billingState
+                                                  .selectedCustomer!['address']
+                                                  ?.toString() ??
+                                              '')
+                                          .isNotEmpty)
+                                        Text(billingState
+                                            .selectedCustomer!['address']
+                                            .toString()),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 24),
 
                               const SizedBox(
@@ -227,29 +272,73 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   ],
                                 ),
                               ),
-                              PrimaryButton(
-                                onPressed: () {
-                                  if (shopState is ShopLoaded) {
-                                    context.read<BillingBloc>().add(
-                                        PrintReceiptEvent(
-                                            shopName: shopState.shop.name,
-                                            address1:
-                                                shopState.shop.addressLine1,
-                                            address2:
-                                                shopState.shop.addressLine2,
-                                            phone: shopState.shop.phoneNumber,
-                                            footer: shopState.shop.footerText));
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                            content:
-                                                Text('Shop details not loaded'),
-                                            backgroundColor: Colors.red));
-                                  }
-                                },
-                                label: 'Print Receipt',
-                                icon: Icons.print,
-                                isLoading: billingState.isPrinting,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: PrimaryButton(
+                                      onPressed: () {
+                                        if (shopState is ShopLoaded) {
+                                          context.read<BillingBloc>().add(
+                                              SaveBillEvent(
+                                                  shopName: shopState.shop.name,
+                                                  address1: shopState
+                                                      .shop.addressLine1,
+                                                  address2: shopState
+                                                      .shop.addressLine2,
+                                                  phone: shopState
+                                                      .shop.phoneNumber,
+                                                  footer:
+                                                      shopState.shop.footerText,
+                                                  customer: billingState
+                                                      .selectedCustomer));
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text(
+                                                      'Shop details not loaded'),
+                                                  backgroundColor: Colors.red));
+                                        }
+                                      },
+                                      label: billingState.saleRecorded
+                                          ? 'Bill Saved'
+                                          : 'Save Bill',
+                                      icon: billingState.saleRecorded
+                                          ? Icons.check_circle
+                                          : Icons.save,
+                                      isLoading: billingState.isSaving,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: PrimaryButton(
+                                      onPressed: () {
+                                        if (shopState is ShopLoaded) {
+                                          context.read<BillingBloc>().add(
+                                              PrintReceiptEvent(
+                                                  shopName: shopState.shop.name,
+                                                  address1: shopState
+                                                      .shop.addressLine1,
+                                                  address2: shopState
+                                                      .shop.addressLine2,
+                                                  phone: shopState
+                                                      .shop.phoneNumber,
+                                                  footer:
+                                                      shopState.shop.footerText,
+                                                  customer: billingState
+                                                      .selectedCustomer));
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text(
+                                                      'Shop details not loaded'),
+                                                  backgroundColor: Colors.red));
+                                        }
+                                      },
+                                      label: 'Print Bill',
+                                      icon: Icons.print,
+                                      isLoading: billingState.isPrinting,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

@@ -37,7 +37,7 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   void _scanQR(List<Product> products) async {
-    final barcode = await context.push<String>('/scanner');
+    final barcode = await context.push<String>('/billing/scanner');
     if (barcode != null && barcode.isNotEmpty) {
       final matchedProduct =
           products.where((p) => p.barcode == barcode).firstOrNull;

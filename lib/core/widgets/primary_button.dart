@@ -40,7 +40,7 @@ class PrimaryButton extends StatelessWidget {
 
     if (icon != null) {
       return Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
         child: ElevatedButton.icon(
           onPressed: isLoading ? null : onPressed,
           icon: isLoading
@@ -63,7 +63,7 @@ class PrimaryButton extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: style,

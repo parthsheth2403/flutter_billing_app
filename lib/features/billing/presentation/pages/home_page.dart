@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:vibration/vibration.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../../core/utils/customer_storage.dart';
+import '../../../../core/utils/quantity_formatter.dart';
 import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -32,6 +34,74 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _scannerController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showCustomerPicker() async {
+    final selectedCustomer = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      builder: (context) => const _CustomerPickerSheet(),
+    );
+
+    if (!mounted) return;
+    context.read<BillingBloc>().add(SelectCustomerEvent(selectedCustomer));
+  }
+
+  Future<void> _editQuantity(CartItem item) async {
+    final controller =
+        TextEditingController(text: QuantityFormatter.format(item.quantity));
+    final formKey = GlobalKey<FormState>();
+
+    final quantity = await showDialog<double>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Quantity for ${item.product.name}'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                hintText: 'e.g. 1.5',
+                suffixText: 'kg',
+              ),
+              validator: (value) {
+                final parsed = double.tryParse(value ?? '');
+                if (parsed == null || parsed <= 0) {
+                  return 'Enter a valid quantity';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.of(context).pop(double.parse(controller.text));
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (quantity == null || !mounted) return;
+    context
+        .read<BillingBloc>()
+        .add(UpdateQuantityEvent(item.product.id, quantity));
   }
 
   void _onDetect(BarcodeCapture capture) async {
@@ -105,7 +175,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomSheet:
+      bottomNavigationBar:
           BlocBuilder<BillingBloc, BillingState>(builder: (context, state) {
         return SafeArea(
           top: false,
@@ -114,7 +184,7 @@ class _HomePageState extends State<HomePage> {
                 ? null
                 : () async {
                     _scannerController.stop();
-                    await context.push('/checkout');
+                    await context.push('/billing/checkout');
                     if (_isCameraOn && mounted) _scannerController.start();
                   },
             icon: Icons.payment,
@@ -335,41 +405,99 @@ class _HomePageState extends State<HomePage> {
           BlocBuilder<BillingBloc, BillingState>(
             builder: (context, state) {
               final totalItems =
-                  state.cartItems.fold<int>(0, (sum, i) => sum + i.quantity);
+                  state.cartItems.fold<double>(0, (sum, i) => sum + i.quantity);
               return Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Scanned Items',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w600)),
-                        Text('$totalItems items total',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text('TOTAL PRICE',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey,
-                                letterSpacing: 1.2)),
-                        Text(
-                          '₹${state.totalAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Theme.of(context).primaryColor),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Scanned Items',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.w600)),
+                            Text(
+                                '${QuantityFormatter.format(totalItems)} units total',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text('TOTAL PRICE',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey,
+                                    letterSpacing: 1.2)),
+                            Text(
+                              '₹${state.totalAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Theme.of(context).primaryColor),
+                            ),
+                          ],
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: _showCustomerPicker,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person_outline),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Customer',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    state.selectedCustomer == null
+                                        ? 'Select customer (optional)'
+                                        : '${state.selectedCustomer!['name']} • ${state.selectedCustomer!['mobile']}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (state.selectedCustomer != null)
+                              IconButton(
+                                onPressed: () => context
+                                    .read<BillingBloc>()
+                                    .add(const SelectCustomerEvent(null)),
+                                icon: const Icon(Icons.close),
+                              )
+                            else
+                              const Icon(Icons.chevron_right),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -492,9 +620,9 @@ class _HomePageState extends State<HomePage> {
                 _circularIconButton(
                     icon: Icons.remove,
                     onPressed: () {
-                      if (item.quantity > 1) {
+                      if (item.quantity > 0.5) {
                         context.read<BillingBloc>().add(UpdateQuantityEvent(
-                            item.product.id, item.quantity - 1));
+                            item.product.id, item.quantity - 0.5));
                       } else {
                         context
                             .read<BillingBloc>()
@@ -502,18 +630,21 @@ class _HomePageState extends State<HomePage> {
                       }
                     }),
                 SizedBox(
-                  width: 32,
-                  child: Text(
-                    '${item.quantity}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  width: 56,
+                  child: InkWell(
+                    onTap: () => _editQuantity(item),
+                    child: Text(
+                      QuantityFormatter.format(item.quantity),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 _circularIconButton(
                     icon: Icons.add,
                     onPressed: () {
                       context.read<BillingBloc>().add(UpdateQuantityEvent(
-                          item.product.id, item.quantity + 1));
+                          item.product.id, item.quantity + 0.5));
                     }),
               ],
             ),
@@ -537,4 +668,172 @@ class _HomePageState extends State<HomePage> {
 
   // A floating Details/Checkout Button at the very bottom
   // Added a Stack wrapper below to overlay this button
+}
+
+class _CustomerPickerSheet extends StatefulWidget {
+  const _CustomerPickerSheet();
+
+  @override
+  State<_CustomerPickerSheet> createState() => _CustomerPickerSheetState();
+}
+
+class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
+  final _searchController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _addressController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _nameController.dispose();
+    _mobileController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveCustomer() async {
+    if (_nameController.text.trim().isEmpty ||
+        _mobileController.text.trim().isEmpty) {
+      return;
+    }
+
+    await CustomerStorage.saveCustomer(
+      name: _nameController.text,
+      mobile: _mobileController.text,
+      address: _addressController.text,
+    );
+    _nameController.clear();
+    _mobileController.clear();
+    _addressController.clear();
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final customers = CustomerStorage.getCustomers();
+    final filteredCustomers = customers.where((customer) {
+      final query = _searchQuery.toLowerCase().trim();
+      if (query.isEmpty) return true;
+
+      final haystack = [
+        customer['name']?.toString() ?? '',
+        customer['mobile']?.toString() ?? '',
+        customer['address']?.toString() ?? '',
+      ].join(' ').toLowerCase();
+
+      return haystack.contains(query);
+    }).toList();
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD1D5DB),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Select Customer',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _searchQuery = value),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Search customer by name or mobile',
+                  suffixIcon: _searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                          icon: const Icon(Icons.close),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (customers.isNotEmpty)
+                if (filteredCustomers.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8, bottom: 4),
+                    child: Text('No customers match your search.'),
+                  )
+                else
+                  ...filteredCustomers.map(
+                    (customer) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
+                      child: ListTile(
+                        title: Text(customer['name']?.toString() ?? ''),
+                        subtitle: Text(
+                          [
+                            customer['mobile']?.toString() ?? '',
+                            customer['address']?.toString() ?? '',
+                          ].where((value) => value.isNotEmpty).join('\n'),
+                        ),
+                        onTap: () => Navigator.of(context)
+                            .pop(Map<String, dynamic>.from(customer)),
+                      ),
+                    ),
+                  ),
+              const Divider(height: 24),
+              const Text(
+                'Add Customer',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _mobileController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Mobile Number'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _addressController,
+                maxLines: 2,
+                decoration: const InputDecoration(labelText: 'Address'),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _saveCustomer,
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Text('Save Customer'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

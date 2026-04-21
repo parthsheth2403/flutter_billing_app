@@ -1,10 +1,13 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/cart_item.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
+
 import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
-import '../../../../core/utils/printer_helper.dart';
 import '../../../../core/data/hive_database.dart';
+import '../../../../core/utils/printer_helper.dart';
+import '../../../../core/utils/quantity_formatter.dart';
+import '../../../../core/utils/sales_storage.dart';
+import '../../domain/entities/cart_item.dart';
 
 part 'billing_event.dart';
 part 'billing_state.dart';
@@ -19,6 +22,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<RemoveProductFromCartEvent>(_onRemoveProductFromCart);
     on<UpdateQuantityEvent>(_onUpdateQuantity);
     on<ClearCartEvent>(_onClearCart);
+    on<SelectCustomerEvent>(_onSelectCustomer);
+    on<SaveBillEvent>(_onSaveBill);
     on<PrintReceiptEvent>(_onPrintReceipt);
   }
 
@@ -82,8 +87,62 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     emit(const BillingState());
   }
 
+  void _onSelectCustomer(
+      SelectCustomerEvent event, Emitter<BillingState> emit) {
+    emit(state.copyWith(
+      selectedCustomer: event.customer,
+      clearCustomer: event.customer == null,
+    ));
+  }
+
+  Future<void> _onSaveBill(
+      SaveBillEvent event, Emitter<BillingState> emit) async {
+    if (state.saleRecorded || state.cartItems.isEmpty) {
+      return;
+    }
+
+    emit(state.copyWith(isSaving: true, printSuccess: false, clearError: true));
+
+    try {
+      final saleId = await SalesStorage.saveSale(
+        cartItems: state.cartItems,
+        shopName: event.shopName,
+        address1: event.address1,
+        address2: event.address2,
+        phone: event.phone,
+        footer: event.footer,
+        customer: event.customer,
+      );
+
+      emit(state.copyWith(
+        isSaving: false,
+        saleRecorded: true,
+        saleId: saleId,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+          isSaving: false,
+          error: 'Failed to save bill: $e',
+          clearError: false));
+      emit(state.copyWith(clearError: true));
+    }
+  }
+
   Future<void> _onPrintReceipt(
       PrintReceiptEvent event, Emitter<BillingState> emit) async {
+    if (!state.saleRecorded && state.cartItems.isNotEmpty) {
+      final saleId = await SalesStorage.saveSale(
+        cartItems: state.cartItems,
+        shopName: event.shopName,
+        address1: event.address1,
+        address2: event.address2,
+        phone: event.phone,
+        footer: event.footer,
+        customer: event.customer,
+      );
+      emit(state.copyWith(saleRecorded: true, saleId: saleId));
+    }
+
     final printerHelper = PrinterHelper();
 
     if (!printerHelper.isConnected) {
@@ -112,7 +171,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       final items = state.cartItems
           .map((item) => {
                 'name': item.product.name,
-                'qty': item.quantity,
+                'qty': QuantityFormatter.format(item.quantity),
                 'price': item.product.price,
                 'total': item.total,
               })
