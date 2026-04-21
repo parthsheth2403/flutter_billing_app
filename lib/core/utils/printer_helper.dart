@@ -12,6 +12,11 @@ class EscPos {
   static const List<int> textNormal = [0x1D, 0x21, 0x00];
   static const List<int> textLarge = [0x1D, 0x21, 0x11];
   static const List<int> lineFeed = [0x0A];
+  static const List<int> barcodeTextBelow = [0x1D, 0x48, 0x02];
+  static const List<int> barcodeTextOff = [0x1D, 0x48, 0x00];
+  static const List<int> barcodeFontA = [0x1D, 0x66, 0x00];
+  static const List<int> barcodeHeight = [0x1D, 0x68, 0x50];
+  static const List<int> barcodeWidth = [0x1D, 0x77, 0x02];
 }
 
 class PrinterHelper {
@@ -195,8 +200,75 @@ class PrinterHelper {
     await PrintBluetoothThermal.writeBytes(bytes);
   }
 
+  Future<void> printProductBarcodeLabels({
+    required String productName,
+    required String barcode,
+    required double price,
+    required int quantity,
+  }) async {
+    if (!_isConnected) return;
+
+    final bool connectionStatus = await PrintBluetoothThermal.connectionStatus;
+    if (!connectionStatus) return;
+
+    final safeQuantity = quantity < 1 ? 1 : quantity;
+    final trimmedName = productName.trim().isEmpty ? 'Product' : productName;
+    final priceLine = 'Price: Rs ${price.toStringAsFixed(2)}';
+    final barcodePayload = _code128Bytes(barcode.trim());
+
+    List<int> bytes = [];
+    bytes += EscPos.init;
+
+    for (var index = 0; index < safeQuantity; index++) {
+      bytes += EscPos.alignCenter;
+      bytes += EscPos.boldOn;
+      bytes += EscPos.textNormal;
+      bytes += _textToBytes(_truncate(trimmedName, 24));
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.boldOff;
+      bytes += _textToBytes(priceLine);
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.lineFeed;
+
+      bytes += EscPos.barcodeTextBelow;
+      bytes += EscPos.barcodeFontA;
+      bytes += EscPos.barcodeHeight;
+      bytes += EscPos.barcodeWidth;
+      bytes += barcodePayload;
+      bytes += EscPos.lineFeed;
+
+      bytes += EscPos.textNormal;
+      bytes += _textToBytes(barcode);
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.lineFeed;
+      bytes += _textToBytes('Label ${index + 1} of $safeQuantity');
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.lineFeed;
+    }
+
+    bytes += EscPos.barcodeTextOff;
+    await PrintBluetoothThermal.writeBytes(bytes);
+  }
+
   List<int> _textToBytes(String text) {
     // Should verify encoding, but Latin-1 usually works for basic printers
     return List.from(text.codeUnits);
+  }
+
+  List<int> _code128Bytes(String value) {
+    final payload = '{B$value';
+    return <int>[
+      0x1D,
+      0x6B,
+      0x49,
+      payload.length,
+      ...payload.codeUnits,
+    ];
+  }
+
+  String _truncate(String value, int maxLength) {
+    if (value.length <= maxLength) return value;
+    return '${value.substring(0, maxLength - 1)}…';
   }
 }

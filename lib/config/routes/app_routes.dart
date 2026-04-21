@@ -1,4 +1,6 @@
 import 'package:go_router/go_router.dart';
+import '../../core/auth/shop_access_controller.dart';
+import '../../features/auth/presentation/pages/shop_activation_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/billing/presentation/pages/home_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
@@ -14,7 +16,26 @@ import '../../features/product/domain/entities/product.dart';
 
 final router = GoRouter(
   initialLocation: '/',
+  refreshListenable: ShopAccessController.instance,
+  redirect: (context, state) {
+    final isAuthenticated = ShopAccessController.instance.isAuthenticated;
+    final isActivationRoute = state.matchedLocation == '/activate';
+
+    if (!isAuthenticated && !isActivationRoute) {
+      return '/activate';
+    }
+
+    if (isAuthenticated && isActivationRoute) {
+      return '/';
+    }
+
+    return null;
+  },
   routes: [
+    GoRoute(
+      path: '/activate',
+      builder: (context, state) => const ShopActivationPage(),
+    ),
     GoRoute(
       path: '/',
       builder: (context, state) => const DashboardPage(),

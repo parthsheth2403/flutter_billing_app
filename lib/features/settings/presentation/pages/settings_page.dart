@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:intl/intl.dart';
 
+import '../../../../core/auth/shop_access_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
@@ -17,6 +19,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final ShopAccessController _accessController = ShopAccessController.instance;
+
   @override
   void initState() {
     super.initState();
@@ -118,6 +122,42 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: () => context.push('/shop'),
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 24),
+
+              _buildSectionHeader('Access'),
+              AnimatedBuilder(
+                animation: _accessController,
+                builder: (context, _) {
+                  final profile = _accessController.profile;
+                  final accessSubtitle = profile == null
+                      ? 'Shop activation required'
+                      : '${profile.shopId} • Expires ${DateFormat('dd MMM yyyy').format(profile.expiryDate)}';
+
+                  return _buildListGroup(
+                    children: [
+                      _buildListItem(
+                        icon: Icons.verified_user_rounded,
+                        title: 'Shop Access',
+                        subtitle: accessSubtitle,
+                        trailingIcon: null,
+                      ),
+                      _buildDivider(),
+                      _buildListItem(
+                        icon: Icons.logout_rounded,
+                        title: 'Logout',
+                        subtitle: 'Sign out without deleting local shop data',
+                        trailingIcon: null,
+                        onTap: _logout,
+                        trailingWidget: Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey[300],
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -313,5 +353,33 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _logout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text(
+          'This will sign you out of the shop access session, but all products, customers, bills, and sales data will remain on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) return;
+
+    await _accessController.logout();
+    if (!mounted) return;
+    context.go('/activate');
   }
 }

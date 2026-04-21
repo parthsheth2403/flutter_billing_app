@@ -125,6 +125,9 @@ class _AddProductPageState extends State<AddProductPage> {
                         style: FilledButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
                           foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 52),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 16),
                           shape: RoundedRectangleBorder(
