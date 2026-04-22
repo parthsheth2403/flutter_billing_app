@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:intl/intl.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -113,6 +115,7 @@ class PrinterHelper {
     required String address1,
     required String address2,
     required String phone,
+    required String upiId,
     required List<Map<String, dynamic>> items, // Name, Qty, Price, Total
     required double total,
     required String footer,
@@ -189,6 +192,26 @@ class PrinterHelper {
     bytes += EscPos.boldOff;
     bytes += EscPos.lineFeed;
 
+    if (upiId.trim().isNotEmpty) {
+      final upiPayload = _buildUpiPayload(
+        upiId: upiId,
+        shopName: shopName,
+        total: total,
+      );
+
+      bytes += EscPos.alignCenter;
+      bytes += EscPos.boldOn;
+      bytes += _textToBytes('SCAN & PAY');
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.boldOff;
+      bytes += _textToBytes('UPI: ${upiId.trim()}');
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.lineFeed;
+      bytes += _qrCodeBytes(upiPayload);
+      bytes += EscPos.lineFeed;
+      bytes += EscPos.lineFeed;
+    }
+
     // Footer (Center)
     bytes += EscPos.alignCenter;
     bytes += _textToBytes(footer);
@@ -254,6 +277,78 @@ class PrinterHelper {
   List<int> _textToBytes(String text) {
     // Should verify encoding, but Latin-1 usually works for basic printers
     return List.from(text.codeUnits);
+  }
+
+  String _buildUpiPayload({
+    required String upiId,
+    required String shopName,
+    required double total,
+  }) {
+    final compactShopName = shopName.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final shortShopName = compactShopName.length <= 18
+        ? compactShopName
+        : compactShopName.substring(0, 18);
+
+    return Uri(
+      scheme: 'upi',
+      host: 'pay',
+      queryParameters: <String, String>{
+        'pa': upiId.trim(),
+        'pn': shortShopName.isEmpty ? 'Shop' : shortShopName,
+        'am': total.toStringAsFixed(2),
+        'cu': 'INR',
+      },
+    ).toString();
+  }
+
+  List<int> _qrCodeBytes(String payload) {
+    final data = utf8.encode(payload);
+    final storeLength = data.length + 3;
+
+    return <int>[
+      0x1D,
+      0x28,
+      0x6B,
+      0x04,
+      0x00,
+      0x31,
+      0x41,
+      0x32,
+      0x00,
+      0x1D,
+      0x28,
+      0x6B,
+      0x03,
+      0x00,
+      0x31,
+      0x43,
+      0x08,
+      0x1D,
+      0x28,
+      0x6B,
+      0x03,
+      0x00,
+      0x31,
+      0x45,
+      0x30,
+      0x1D,
+      0x28,
+      0x6B,
+      storeLength & 0xFF,
+      (storeLength >> 8) & 0xFF,
+      0x31,
+      0x50,
+      0x30,
+      ...data,
+      0x1D,
+      0x28,
+      0x6B,
+      0x03,
+      0x00,
+      0x31,
+      0x51,
+      0x30,
+    ];
   }
 
   List<int> _code128Bytes(String value) {

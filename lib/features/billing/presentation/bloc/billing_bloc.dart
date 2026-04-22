@@ -110,6 +110,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         address1: event.address1,
         address2: event.address2,
         phone: event.phone,
+        upiId: event.upiId,
         footer: event.footer,
         customer: event.customer,
       );
@@ -137,6 +138,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         address1: event.address1,
         address2: event.address2,
         phone: event.phone,
+        upiId: event.upiId,
         footer: event.footer,
         customer: event.customer,
       );
@@ -182,6 +184,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
           address1: event.address1,
           address2: event.address2,
           phone: event.phone,
+          upiId: event.upiId,
           items: items,
           total: state.totalAmount,
           footer: event.footer);

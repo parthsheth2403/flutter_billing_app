@@ -182,7 +182,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       _buildListItem(
                         icon: Icons.print,
                         title: 'Print Device',
-                        subtitleWidget: Row(
+                        subtitleWidget: Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
                               state.connectedMac != null
@@ -191,8 +194,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               style: TextStyle(
                                   fontSize: 12, color: Colors.grey[500]),
                             ),
-                            if (state.connectedMac != null) ...[
-                              const SizedBox(width: 8),
+                            if (state.connectedMac != null)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
@@ -209,7 +211,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                       color: Colors.teal[700]),
                                 ),
                               ),
-                            ]
                           ],
                         ),
                         trailingWidget: Row(

@@ -51,6 +51,7 @@ class SaveBillEvent extends BillingEvent {
   final String address1;
   final String address2;
   final String phone;
+  final String upiId;
   final String footer;
   final Map<String, dynamic>? customer;
 
@@ -59,13 +60,14 @@ class SaveBillEvent extends BillingEvent {
     required this.address1,
     required this.address2,
     required this.phone,
+    required this.upiId,
     required this.footer,
     this.customer,
   });
 
   @override
   List<Object?> get props =>
-      [shopName, address1, address2, phone, footer, customer];
+      [shopName, address1, address2, phone, upiId, footer, customer];
 }
 
 class PrintReceiptEvent extends BillingEvent {
@@ -73,6 +75,7 @@ class PrintReceiptEvent extends BillingEvent {
   final String address1;
   final String address2;
   final String phone;
+  final String upiId;
   final String footer;
   final Map<String, dynamic>? customer;
 
@@ -81,11 +84,12 @@ class PrintReceiptEvent extends BillingEvent {
     required this.address1,
     required this.address2,
     required this.phone,
+    required this.upiId,
     required this.footer,
     this.customer,
   });
 
   @override
   List<Object?> get props =>
-      [shopName, address1, address2, phone, footer, customer];
+      [shopName, address1, address2, phone, upiId, footer, customer];
 }

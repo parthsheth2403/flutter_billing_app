@@ -287,6 +287,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                                       .shop.addressLine2,
                                                   phone: shopState
                                                       .shop.phoneNumber,
+                                                  upiId: shopState.shop.upiId,
                                                   footer:
                                                       shopState.shop.footerText,
                                                   customer: billingState
@@ -321,6 +322,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                                       .shop.addressLine2,
                                                   phone: shopState
                                                       .shop.phoneNumber,
+                                                  upiId: shopState.shop.upiId,
                                                   footer:
                                                       shopState.shop.footerText,
                                                   customer: billingState

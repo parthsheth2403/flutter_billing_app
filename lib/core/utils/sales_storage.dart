@@ -26,6 +26,7 @@ class SalesStorage {
     required String address1,
     required String address2,
     required String phone,
+    required String upiId,
     required String footer,
     Map<String, dynamic>? customer,
   }) async {
@@ -40,6 +41,7 @@ class SalesStorage {
       'address1': address1,
       'address2': address2,
       'phone': phone,
+      'upiId': upiId,
       'footer': footer,
       'customer': customer,
       'createdAt': now.toIso8601String(),
@@ -110,6 +112,7 @@ class SalesStorage {
       address1: sale['address1']?.toString() ?? '',
       address2: sale['address2']?.toString() ?? '',
       phone: sale['phone']?.toString() ?? '',
+      upiId: sale['upiId']?.toString() ?? '',
       items: items,
       total: (sale['totalAmount'] as num?)?.toDouble() ?? 0,
       footer: sale['footer']?.toString() ?? '',

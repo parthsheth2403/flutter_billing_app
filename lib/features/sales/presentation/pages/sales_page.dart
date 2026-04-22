@@ -7,8 +7,28 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/utils/sales_storage.dart';
 
-class SalesPage extends StatelessWidget {
+class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
+
+  @override
+  State<SalesPage> createState() => _SalesPageState();
+}
+
+class _SalesPageState extends State<SalesPage> {
+  DateTime? _selectedDate;
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? now,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 1),
+    );
+
+    if (picked == null) return;
+    setState(() => _selectedDate = picked);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +43,21 @@ class SalesPage extends StatelessWidget {
           valueListenable: HiveDatabase.salesBox.listenable(),
           builder: (context, box, _) {
             final sales = SalesStorage.getSales();
+            final filteredSales = _selectedDate == null
+                ? sales
+                : sales.where((sale) {
+                    final createdAt = DateTime.tryParse(
+                      sale['createdAt']?.toString() ?? '',
+                    );
+                    return createdAt != null &&
+                        DateUtils.isSameDay(createdAt, _selectedDate);
+                  }).toList();
             final snapshot = SalesStorage.buildSnapshot(sales);
+            final filteredTotal = filteredSales.fold<double>(
+              0,
+              (sum, sale) =>
+                  sum + ((sale['totalAmount'] as num?)?.toDouble() ?? 0),
+            );
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -48,20 +82,105 @@ class SalesPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Previous Bills',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        child: Text(
+                          'Previous Bills',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          alignment: WrapAlignment.end,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _pickDate,
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              icon: const Icon(
+                                Icons.calendar_month_outlined,
+                                size: 18,
+                              ),
+                              label: Text(
+                                _selectedDate == null
+                                    ? 'Pick Date'
+                                    : DateFormat('dd MMM yyyy')
+                                        .format(_selectedDate!),
+                              ),
+                            ),
+                            if (_selectedDate != null)
+                              IconButton(
+                                onPressed: () =>
+                                    setState(() => _selectedDate = null),
+                                icon: const Icon(Icons.close),
+                                tooltip: 'Clear date filter',
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                if (sales.isEmpty)
+                if (_selectedDate != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.filter_alt_outlined,
+                            color: AppTheme.primaryColor),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${filteredSales.length} bill${filteredSales.length == 1 ? '' : 's'} on ${DateFormat('dd MMM yyyy').format(_selectedDate!)}',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Text(
+                          '₹${filteredTotal.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (filteredSales.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 40),
                     child: Center(
-                      child: Text('No saved bills yet.'),
+                      child: Text('No saved bills found for this selection.'),
                     ),
                   )
                 else
-                  ...sales.map((sale) => _SavedBillCard(sale: sale)),
+                  ...filteredSales.map((sale) => _SavedBillCard(sale: sale)),
               ],
             );
           },
