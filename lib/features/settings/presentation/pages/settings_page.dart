@@ -177,6 +177,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 },
                 builder: (context, state) {
+                  final devices = List.of(state.devices)
+                    ..sort((a, b) => a.name.compareTo(b.name));
+
                   return _buildListGroup(
                     children: [
                       _buildListItem(
@@ -242,6 +245,70 @@ class _SettingsPageState extends State<SettingsPage> {
                           ],
                         ),
                       ),
+                      if (devices.isNotEmpty) ...[
+                        _buildDivider(),
+                        ...devices.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final device = entry.value;
+                          final isConnected =
+                              state.connectedMac == device.macAdress;
+
+                          return Column(
+                            children: [
+                              _buildListItem(
+                                icon: isConnected
+                                    ? Icons.bluetooth_connected
+                                    : Icons.print_outlined,
+                                title: device.name,
+                                subtitle: device.macAdress,
+                                trailingWidget: isConnected
+                                    ? Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.teal[50],
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                              color: Colors.teal[200]!),
+                                        ),
+                                        child: Text(
+                                          'Connected',
+                                          style: TextStyle(
+                                            color: Colors.teal[700],
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      )
+                                    : TextButton(
+                                        onPressed: state.status ==
+                                                PrinterStatus.connecting
+                                            ? null
+                                            : () =>
+                                                context.read<PrinterBloc>().add(
+                                                      ConnectPrinterEvent(
+                                                        mac: device.macAdress,
+                                                        name: device.name,
+                                                      ),
+                                                    ),
+                                        child: const Text('Connect'),
+                                      ),
+                                trailingIcon: null,
+                                onTap: state.status == PrinterStatus.connecting
+                                    ? null
+                                    : () => context.read<PrinterBloc>().add(
+                                          ConnectPrinterEvent(
+                                            mac: device.macAdress,
+                                            name: device.name,
+                                          ),
+                                        ),
+                              ),
+                              if (index != devices.length - 1) _buildDivider(),
+                            ],
+                          );
+                        }),
+                      ],
                     ],
                   );
                 },
@@ -251,7 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 child: Text(
-                  "To connect a new device, tap on the Settings gear to pair in phone's Bluetooth settings, then return and hit Refresh.",
+                  "To connect a new device, tap the Settings gear to pair it in your phone's Bluetooth settings, then return, hit Refresh, and tap the printer you want to connect.",
                   style: TextStyle(
                       fontSize: 11,
                       fontStyle: FontStyle.italic,

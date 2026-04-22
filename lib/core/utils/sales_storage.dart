@@ -84,7 +84,8 @@ class SalesStorage {
 
   static Future<void> printSavedSale(Map sale) async {
     final printerHelper = PrinterHelper();
-    if (!printerHelper.isConnected) {
+    final hasActiveConnection = await printerHelper.connectionStatus();
+    if (!hasActiveConnection) {
       final savedMac = HiveDatabase.settingsBox.get('printer_mac');
       if (savedMac == null) {
         throw Exception('Printer not connected & no saved printer found!');

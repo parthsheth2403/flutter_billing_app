@@ -30,6 +30,17 @@ class PrinterHelper {
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
+  Future<bool> connectionStatus() async {
+    try {
+      final status = await PrintBluetoothThermal.connectionStatus;
+      _isConnected = status;
+      return status;
+    } catch (e) {
+      _isConnected = false;
+      return false;
+    }
+  }
+
   Future<bool> checkPermission() async {
     // Request Bluetooth and Location permissions
     // Android 12+ needs BLUETOOTH_SCAN, BLUETOOTH_CONNECT
@@ -56,11 +67,25 @@ class PrinterHelper {
   }
 
   Future<bool> connect(String macAddress) async {
+    if (macAddress.trim().isEmpty) {
+      _isConnected = false;
+      return false;
+    }
+
     try {
-      final bool result =
+      final hasActiveConnection = await connectionStatus();
+      if (hasActiveConnection) {
+        await PrintBluetoothThermal.disconnect;
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      }
+
+      final result =
           await PrintBluetoothThermal.connect(macPrinterAddress: macAddress);
-      _isConnected = result;
-      return result;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      final activeConnection = await connectionStatus();
+      _isConnected = result && activeConnection;
+      return _isConnected;
     } catch (e) {
       _isConnected = false;
       return false;
@@ -69,25 +94,34 @@ class PrinterHelper {
 
   Future<bool> disconnect() async {
     try {
-      final bool result = await PrintBluetoothThermal.disconnect;
-      _isConnected =
-          !result; // If disconnected successfully, isConnected is false
-      return result;
+      final activeConnection = await connectionStatus();
+      if (!activeConnection) {
+        _isConnected = false;
+        return true;
+      }
+
+      final result = await PrintBluetoothThermal.disconnect;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      final stillConnected = await connectionStatus();
+      _isConnected = stillConnected;
+      return result || !stillConnected;
     } catch (e) {
+      _isConnected = false;
       return false;
     }
   }
 
   Future<void> printText(String text) async {
-    if (!_isConnected) return;
+    if (!await connectionStatus()) return;
 
     // Simple text printing
     // We can use bytes for advanced formatting
     // But plugin supports basic text or bytes
 
     // Checking battery or connection status
-    final bool connectionStatus = await PrintBluetoothThermal.connectionStatus;
-    if (connectionStatus) {
+    final activeConnection = await connectionStatus();
+    if (activeConnection) {
       // Plugin allows sending bytes. We need ESC/POS commands for text.
       // However, the plugin might have helper.
       // Looking at doc, `writeBytes` or `writeString`?
@@ -121,7 +155,7 @@ class PrinterHelper {
     required String footer,
     DateTime? createdAt,
   }) async {
-    if (!_isConnected) return;
+    if (!await connectionStatus()) return;
 
     // Construct ESC/POS bytes manually or using helper
     List<int> bytes = [];
@@ -229,14 +263,9 @@ class PrinterHelper {
     required double price,
     required int quantity,
   }) async {
-    if (!_isConnected) return;
-
-    final bool connectionStatus = await PrintBluetoothThermal.connectionStatus;
-    if (!connectionStatus) return;
+    if (!await connectionStatus()) return;
 
     final safeQuantity = quantity < 1 ? 1 : quantity;
-    final trimmedName = productName.trim().isEmpty ? 'Product' : productName;
-    final priceLine = 'Price: Rs ${price.toStringAsFixed(2)}';
     final barcodePayload = _code128Bytes(barcode.trim());
 
     List<int> bytes = [];
@@ -244,27 +273,11 @@ class PrinterHelper {
 
     for (var index = 0; index < safeQuantity; index++) {
       bytes += EscPos.alignCenter;
-      bytes += EscPos.boldOn;
-      bytes += EscPos.textNormal;
-      bytes += _textToBytes(_truncate(trimmedName, 24));
-      bytes += EscPos.lineFeed;
-      bytes += EscPos.boldOff;
-      bytes += _textToBytes(priceLine);
-      bytes += EscPos.lineFeed;
-      bytes += EscPos.lineFeed;
-
       bytes += EscPos.barcodeTextBelow;
       bytes += EscPos.barcodeFontA;
       bytes += EscPos.barcodeHeight;
       bytes += EscPos.barcodeWidth;
       bytes += barcodePayload;
-      bytes += EscPos.lineFeed;
-
-      bytes += EscPos.textNormal;
-      bytes += _textToBytes(barcode);
-      bytes += EscPos.lineFeed;
-      bytes += EscPos.lineFeed;
-      bytes += _textToBytes('Label ${index + 1} of $safeQuantity');
       bytes += EscPos.lineFeed;
       bytes += EscPos.lineFeed;
       bytes += EscPos.lineFeed;
@@ -360,10 +373,5 @@ class PrinterHelper {
       payload.length,
       ...payload.codeUnits,
     ];
-  }
-
-  String _truncate(String value, int maxLength) {
-    if (value.length <= maxLength) return value;
-    return '${value.substring(0, maxLength - 1)}…';
   }
 }

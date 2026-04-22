@@ -4,6 +4,7 @@ import 'package:billing_app/features/product/domain/entities/product.dart';
 
 import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
 import '../../../../core/data/hive_database.dart';
+import '../../../../core/utils/feedback_helper.dart';
 import '../../../../core/utils/printer_helper.dart';
 import '../../../../core/utils/quantity_formatter.dart';
 import '../../../../core/utils/sales_storage.dart';
@@ -57,6 +58,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       emit(cleanState.copyWith(
           cartItems: [...cleanState.cartItems, newItem], error: null));
     }
+
+    FeedbackHelper.vibrate();
   }
 
   void _onRemoveProductFromCart(
@@ -147,7 +150,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
     final printerHelper = PrinterHelper();
 
-    if (!printerHelper.isConnected) {
+    final hasActiveConnection = await printerHelper.connectionStatus();
+    if (!hasActiveConnection) {
       final savedMac = HiveDatabase.settingsBox.get('printer_mac');
       if (savedMac != null) {
         final connected = await printerHelper.connect(savedMac);

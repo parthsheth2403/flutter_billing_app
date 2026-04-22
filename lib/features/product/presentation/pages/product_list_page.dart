@@ -266,7 +266,8 @@ class _ProductListPageState extends State<ProductListPage> {
 
     final printerHelper = PrinterHelper();
     try {
-      if (!printerHelper.isConnected) {
+      final hasActiveConnection = await printerHelper.connectionStatus();
+      if (!hasActiveConnection) {
         final savedMac = HiveDatabase.settingsBox.get('printer_mac');
         if (savedMac == null) {
           throw Exception(

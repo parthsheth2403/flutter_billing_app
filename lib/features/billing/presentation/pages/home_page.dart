@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -139,8 +138,6 @@ class _HomePageState extends State<HomePage> {
         }
 
         _lastScanTimes[rawValue] = now;
-
-        SystemSound.play(SystemSoundType.alert);
 
         if (mounted) {
           context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));

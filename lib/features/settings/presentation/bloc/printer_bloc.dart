@@ -15,13 +15,20 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
     on<TestPrintEvent>(_onTestPrint);
   }
 
-  void _onInit(InitPrinterEvent event, Emitter<PrinterState> emit) {
+  Future<void> _onInit(
+      InitPrinterEvent event, Emitter<PrinterState> emit) async {
     final mac = repository.getSavedPrinterMac();
     final name = repository.getSavedPrinterName();
+    final connected = await repository.isConnected();
+
     emit(state.copyWith(
-      status: PrinterStatus.initial,
-      connectedMac: mac,
-      connectedName: name,
+      status: connected && mac != null
+          ? PrinterStatus.connected
+          : PrinterStatus.initial,
+      connectedMac: connected ? mac : null,
+      connectedName: connected ? name : null,
+      clearConnected: !connected,
+      clearError: true,
     ));
   }
 
@@ -38,31 +45,10 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
         ));
         return;
       }
-
-      bool connected = false;
-      for (var device in devices) {
-        final success = await repository.connect(device.macAdress);
-        if (success) {
-          await repository.savePrinterData(device.macAdress, device.name);
-          emit(state.copyWith(
-            status: PrinterStatus.connected,
-            connectedMac: device.macAdress,
-            connectedName: device.name,
-            devices: devices,
-            clearError: true,
-          ));
-          connected = true;
-          break;
-        }
-      }
-
-      if (!connected) {
-        emit(state.copyWith(
-          status: PrinterStatus.scanFailure,
-          errorMessage: 'Could not connect to any paired device.',
-          devices: devices,
-        ));
-      }
+      emit(state.copyWith(
+        status: PrinterStatus.scanSuccess,
+        devices: devices,
+      ));
     } catch (e) {
       emit(state.copyWith(
         status: PrinterStatus.scanFailure,
@@ -98,10 +84,12 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
         status: PrinterStatus.connected,
         connectedMac: event.mac,
         connectedName: event.name,
+        clearError: true,
       ));
     } else {
       emit(state.copyWith(
         status: PrinterStatus.connectionFailure,
+        clearConnected: true,
         errorMessage: 'Failed to connect to printer',
       ));
     }

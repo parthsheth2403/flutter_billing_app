@@ -35,11 +35,13 @@ class PrinterState extends Equatable {
     List<BluetoothInfo>? devices,
     String? errorMessage,
     bool clearError = false,
+    bool clearConnected = false,
   }) {
     return PrinterState(
       status: status ?? this.status,
-      connectedMac: connectedMac ?? this.connectedMac,
-      connectedName: connectedName ?? this.connectedName,
+      connectedMac: clearConnected ? null : (connectedMac ?? this.connectedMac),
+      connectedName:
+          clearConnected ? null : (connectedName ?? this.connectedName),
       devices: devices ?? this.devices,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );

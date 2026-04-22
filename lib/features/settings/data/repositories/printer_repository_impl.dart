@@ -15,6 +15,11 @@ class PrinterRepositoryImpl implements PrinterRepository {
   }
 
   @override
+  Future<bool> isConnected() async {
+    return await _printerHelper.connectionStatus();
+  }
+
+  @override
   Future<bool> connect(String macAddress) async {
     return await _printerHelper.connect(macAddress);
   }

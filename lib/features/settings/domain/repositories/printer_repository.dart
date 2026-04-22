@@ -2,6 +2,7 @@ import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 abstract class PrinterRepository {
   Future<List<BluetoothInfo>> scanDevices();
+  Future<bool> isConnected();
   Future<bool> connect(String macAddress);
   Future<bool> disconnect();
   String? getSavedPrinterMac();
