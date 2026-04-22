@@ -28,6 +28,7 @@ class SalesStorage {
     required String phone,
     required String upiId,
     required String footer,
+    required String paymentMode,
     Map<String, dynamic>? customer,
   }) async {
     final now = DateTime.now();
@@ -43,6 +44,7 @@ class SalesStorage {
       'phone': phone,
       'upiId': upiId,
       'footer': footer,
+      'paymentMode': paymentMode,
       'customer': customer,
       'createdAt': now.toIso8601String(),
       'totalAmount': totalAmount,

@@ -37,6 +37,15 @@ class UpdateQuantityEvent extends BillingEvent {
 
 class ClearCartEvent extends BillingEvent {}
 
+class UpdatePaymentModeEvent extends BillingEvent {
+  final String paymentMode;
+
+  const UpdatePaymentModeEvent(this.paymentMode);
+
+  @override
+  List<Object?> get props => [paymentMode];
+}
+
 class SelectCustomerEvent extends BillingEvent {
   final Map<String, dynamic>? customer;
 
@@ -53,6 +62,7 @@ class SaveBillEvent extends BillingEvent {
   final String phone;
   final String upiId;
   final String footer;
+  final String paymentMode;
   final Map<String, dynamic>? customer;
 
   const SaveBillEvent({
@@ -62,12 +72,21 @@ class SaveBillEvent extends BillingEvent {
     required this.phone,
     required this.upiId,
     required this.footer,
+    required this.paymentMode,
     this.customer,
   });
 
   @override
-  List<Object?> get props =>
-      [shopName, address1, address2, phone, upiId, footer, customer];
+  List<Object?> get props => [
+        shopName,
+        address1,
+        address2,
+        phone,
+        upiId,
+        footer,
+        paymentMode,
+        customer
+      ];
 }
 
 class PrintReceiptEvent extends BillingEvent {
@@ -77,6 +96,7 @@ class PrintReceiptEvent extends BillingEvent {
   final String phone;
   final String upiId;
   final String footer;
+  final String paymentMode;
   final Map<String, dynamic>? customer;
 
   const PrintReceiptEvent({
@@ -86,10 +106,19 @@ class PrintReceiptEvent extends BillingEvent {
     required this.phone,
     required this.upiId,
     required this.footer,
+    required this.paymentMode,
     this.customer,
   });
 
   @override
-  List<Object?> get props =>
-      [shopName, address1, address2, phone, upiId, footer, customer];
+  List<Object?> get props => [
+        shopName,
+        address1,
+        address2,
+        phone,
+        upiId,
+        footer,
+        paymentMode,
+        customer
+      ];
 }

@@ -9,6 +9,7 @@ class BillingState extends Equatable {
   final bool isSaving;
   final String? saleId;
   final Map<String, dynamic>? selectedCustomer;
+  final String paymentMode;
 
   const BillingState({
     this.cartItems = const [],
@@ -19,6 +20,7 @@ class BillingState extends Equatable {
     this.isSaving = false,
     this.saleId,
     this.selectedCustomer,
+    this.paymentMode = 'Offline',
   });
 
   double get totalAmount => cartItems.fold(0, (sum, item) => sum + item.total);
@@ -34,6 +36,7 @@ class BillingState extends Equatable {
     String? saleId,
     Map<String, dynamic>? selectedCustomer,
     bool clearCustomer = false,
+    String? paymentMode,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -43,9 +46,9 @@ class BillingState extends Equatable {
       saleRecorded: saleRecorded ?? this.saleRecorded,
       isSaving: isSaving ?? this.isSaving,
       saleId: saleId ?? this.saleId,
-      selectedCustomer: clearCustomer
-          ? null
-          : (selectedCustomer ?? this.selectedCustomer),
+      selectedCustomer:
+          clearCustomer ? null : (selectedCustomer ?? this.selectedCustomer),
+      paymentMode: paymentMode ?? this.paymentMode,
     );
   }
 
@@ -59,5 +62,6 @@ class BillingState extends Equatable {
         isSaving,
         saleId,
         selectedCustomer,
+        paymentMode,
       ];
 }

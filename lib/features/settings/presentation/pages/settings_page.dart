@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/auth/shop_access_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/data_backup_service.dart';
+import '../../../product/presentation/bloc/product_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
 import '../bloc/printer_event.dart';
@@ -20,6 +22,8 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final ShopAccessController _accessController = ShopAccessController.instance;
+  bool _isExportingBackup = false;
+  bool _isImportingBackup = false;
 
   @override
   void initState() {
@@ -158,6 +162,56 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   );
                 },
+              ),
+
+              const SizedBox(height: 24),
+
+              _buildSectionHeader('Data'),
+              _buildListGroup(
+                children: [
+                  _buildListItem(
+                    icon: Icons.upload_file_rounded,
+                    title: 'Export Backup',
+                    subtitle:
+                        'Create one file with products, customers, sales, shop, and settings',
+                    trailingWidget: _isExportingBackup
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : null,
+                    onTap: _isExportingBackup ? null : _exportBackup,
+                  ),
+                  _buildDivider(),
+                  _buildListItem(
+                    icon: Icons.download_rounded,
+                    title: 'Import Backup',
+                    subtitle:
+                        'Restore everything from a previously exported backup file',
+                    trailingWidget: _isImportingBackup
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : null,
+                    onTap: _isImportingBackup ? null : _importBackup,
+                  ),
+                ],
+              ),
+
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Text(
+                  'Import will replace current local data on this device with the contents of the backup file.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey[500],
+                  ),
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -332,6 +386,96 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _exportBackup() async {
+    setState(() => _isExportingBackup = true);
+    try {
+      await DataBackupService.shareBackupFile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Backup file is ready to share.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isExportingBackup = false);
+      }
+    }
+  }
+
+  Future<void> _importBackup() async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Import Backup'),
+              content: const Text(
+                'This will replace all current local products, customers, sales, shop details, and saved settings with the selected backup file. Continue?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Import'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!confirmed) return;
+
+    setState(() => _isImportingBackup = true);
+    try {
+      final snapshot = await DataBackupService.pickAndImportBackupForShop(
+        expectedShopId: _accessController.cachedShopId,
+      );
+      if (snapshot == null || !mounted) return;
+
+      await ShopAccessController.instance.init();
+
+      if (!mounted) return;
+      context.read<ProductBloc>().add(LoadProducts());
+      context.read<ShopBloc>().add(LoadShopEvent());
+      context.read<PrinterBloc>().add(InitPrinterEvent());
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Backup imported for ${snapshot.shopId ?? 'this shop'}: ${snapshot.productCount} products, ${snapshot.customerCount} customers, ${snapshot.saleCount} sales restored.',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Import failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingBackup = false);
+      }
+    }
   }
 
   Widget _buildSectionHeader(String title) {

@@ -23,6 +23,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<RemoveProductFromCartEvent>(_onRemoveProductFromCart);
     on<UpdateQuantityEvent>(_onUpdateQuantity);
     on<ClearCartEvent>(_onClearCart);
+    on<UpdatePaymentModeEvent>(_onUpdatePaymentMode);
     on<SelectCustomerEvent>(_onSelectCustomer);
     on<SaveBillEvent>(_onSaveBill);
     on<PrintReceiptEvent>(_onPrintReceipt);
@@ -90,6 +91,11 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     emit(const BillingState());
   }
 
+  void _onUpdatePaymentMode(
+      UpdatePaymentModeEvent event, Emitter<BillingState> emit) {
+    emit(state.copyWith(paymentMode: event.paymentMode));
+  }
+
   void _onSelectCustomer(
       SelectCustomerEvent event, Emitter<BillingState> emit) {
     emit(state.copyWith(
@@ -115,6 +121,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         phone: event.phone,
         upiId: event.upiId,
         footer: event.footer,
+        paymentMode: event.paymentMode,
         customer: event.customer,
       );
 
@@ -143,6 +150,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         phone: event.phone,
         upiId: event.upiId,
         footer: event.footer,
+        paymentMode: event.paymentMode,
         customer: event.customer,
       );
       emit(state.copyWith(saleRecorded: true, saleId: saleId));

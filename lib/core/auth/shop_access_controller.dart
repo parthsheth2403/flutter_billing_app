@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 import '../data/hive_database.dart';
+import '../utils/device_identity_service.dart';
 
 enum ShopAccessStatus {
   authenticated,
@@ -14,6 +15,7 @@ class ShopAccessProfile {
   final String shopName;
   final String shopKey;
   final String mobileNumber;
+  final String deviceId;
   final DateTime startDate;
   final DateTime expiryDate;
 
@@ -22,6 +24,7 @@ class ShopAccessProfile {
     required this.shopName,
     required this.shopKey,
     required this.mobileNumber,
+    required this.deviceId,
     required this.startDate,
     required this.expiryDate,
   });
@@ -32,6 +35,8 @@ class ShopAccessProfile {
       shopName: map['shopName']?.toString() ?? '',
       shopKey: map['shopKey']?.toString() ?? '',
       mobileNumber: map['mobileNumber']?.toString() ?? '',
+      deviceId:
+          map['deviceID']?.toString() ?? map['deviceId']?.toString() ?? '',
       startDate: _parseDate(map['startDate']) ?? DateTime.now(),
       expiryDate: _parseDate(map['expiryDate']) ?? DateTime.now(),
     );
@@ -43,6 +48,7 @@ class ShopAccessProfile {
       'shopName': shopName,
       'shopKey': shopKey,
       'mobileNumber': mobileNumber,
+      'deviceID': deviceId,
       'startDate': startDate.toIso8601String(),
       'expiryDate': expiryDate.toIso8601String(),
     };
@@ -123,6 +129,11 @@ class ShopAccessController extends ChangeNotifier {
     }
 
     try {
+      final currentDeviceId = await DeviceIdentityService.getDeviceId();
+      if (currentDeviceId == null) {
+        return 'Unable to verify this device. Please try again.';
+      }
+
       final snapshot = await FirebaseFirestore.instance
           .collection('shops')
           .where('shopId', isEqualTo: trimmedShopId)
@@ -133,9 +144,11 @@ class ShopAccessController extends ChangeNotifier {
         return 'Shop ID or shop key is invalid.';
       }
 
-      final data = snapshot.docs.first.data();
+      final doc = snapshot.docs.first;
+      final data = doc.data();
       final savedShopKey = data['shopKey']?.toString().trim() ?? '';
       final isActive = data['isActive'] as bool? ?? true;
+      final boundDeviceId = data['deviceID']?.toString().trim() ?? '';
 
       if (savedShopKey != trimmedShopKey) {
         return 'Shop ID or shop key is invalid.';
@@ -143,6 +156,17 @@ class ShopAccessController extends ChangeNotifier {
 
       if (!isActive) {
         return 'This shop is inactive. Please contact support.';
+      }
+
+      if (boundDeviceId.isNotEmpty && boundDeviceId != currentDeviceId) {
+        return 'This shop is already activated on another device.';
+      }
+
+      if (boundDeviceId.isEmpty) {
+        await doc.reference.update(<String, dynamic>{
+          'deviceID': currentDeviceId,
+        });
+        data['deviceID'] = currentDeviceId;
       }
 
       final profile = ShopAccessProfile.fromMap(data);

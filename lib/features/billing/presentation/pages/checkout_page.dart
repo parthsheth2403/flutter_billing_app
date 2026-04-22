@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/quantity_formatter.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
@@ -182,6 +183,51 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   ),
                                 ),
                               ],
+                              const SizedBox(height: 18),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                      color: const Color(0xFFE5E5EA)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Mode of Payment',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      children: [
+                                        _buildPaymentModeChip(
+                                          context,
+                                          label: 'Offline',
+                                          icon: Icons.payments_outlined,
+                                          isSelected:
+                                              billingState.paymentMode ==
+                                                  'Offline',
+                                        ),
+                                        _buildPaymentModeChip(
+                                          context,
+                                          label: 'Online',
+                                          icon: Icons.qr_code_2_outlined,
+                                          isSelected:
+                                              billingState.paymentMode ==
+                                                  'Online',
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                               const SizedBox(height: 24),
 
                               const SizedBox(
@@ -290,6 +336,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                                   upiId: shopState.shop.upiId,
                                                   footer:
                                                       shopState.shop.footerText,
+                                                  paymentMode:
+                                                      billingState.paymentMode,
                                                   customer: billingState
                                                       .selectedCustomer));
                                         } else {
@@ -325,6 +373,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                                   upiId: shopState.shop.upiId,
                                                   footer:
                                                       shopState.shop.footerText,
+                                                  paymentMode:
+                                                      billingState.paymentMode,
                                                   customer: billingState
                                                       .selectedCustomer));
                                         } else {
@@ -366,6 +416,53 @@ class _CheckoutPageState extends State<CheckoutPage> {
           fontWeight: FontWeight.bold,
           letterSpacing: 1,
           color: Colors.grey,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentModeChip(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () =>
+          context.read<BillingBloc>().add(UpdatePaymentModeEvent(label)),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryColor.withValues(alpha: 0.10)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryColor : const Color(0xFFE5E7EB),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color:
+                  isSelected ? AppTheme.primaryColor : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : const Color(0xFF334155),
+              ),
+            ),
+          ],
         ),
       ),
     );
