@@ -5,8 +5,6 @@ import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
 import '../../../../core/data/hive_database.dart';
 import '../../../../core/utils/feedback_helper.dart';
-import '../../../../core/utils/printer_helper.dart';
-import '../../../../core/utils/quantity_formatter.dart';
 import '../../../../core/utils/sales_storage.dart';
 import '../../domain/entities/cart_item.dart';
 
@@ -24,6 +22,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<UpdateQuantityEvent>(_onUpdateQuantity);
     on<ClearCartEvent>(_onClearCart);
     on<UpdatePaymentModeEvent>(_onUpdatePaymentMode);
+    on<UpdateDiscountEvent>(_onUpdateDiscount);
     on<SelectCustomerEvent>(_onSelectCustomer);
     on<SaveBillEvent>(_onSaveBill);
     on<PrintReceiptEvent>(_onPrintReceipt);
@@ -96,6 +95,15 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     emit(state.copyWith(paymentMode: event.paymentMode));
   }
 
+  void _onUpdateDiscount(
+      UpdateDiscountEvent event, Emitter<BillingState> emit) {
+    final safeDiscount =
+        event.discountAmount.isFinite && event.discountAmount > 0
+            ? event.discountAmount
+            : 0.0;
+    emit(state.copyWith(discountAmount: safeDiscount));
+  }
+
   void _onSelectCustomer(
       SelectCustomerEvent event, Emitter<BillingState> emit) {
     emit(state.copyWith(
@@ -122,6 +130,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         upiId: event.upiId,
         footer: event.footer,
         paymentMode: event.paymentMode,
+        discountAmount: state.effectiveDiscountAmount,
         customer: event.customer,
       );
 
@@ -141,8 +150,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onPrintReceipt(
       PrintReceiptEvent event, Emitter<BillingState> emit) async {
+    String? saleId = state.saleId;
     if (!state.saleRecorded && state.cartItems.isNotEmpty) {
-      final saleId = await SalesStorage.saveSale(
+      saleId = await SalesStorage.saveSale(
         cartItems: state.cartItems,
         shopName: event.shopName,
         address1: event.address1,
@@ -151,55 +161,25 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         upiId: event.upiId,
         footer: event.footer,
         paymentMode: event.paymentMode,
+        discountAmount: state.effectiveDiscountAmount,
         customer: event.customer,
       );
       emit(state.copyWith(saleRecorded: true, saleId: saleId));
     }
 
-    final printerHelper = PrinterHelper();
-
-    final hasActiveConnection = await printerHelper.connectionStatus();
-    if (!hasActiveConnection) {
-      final savedMac = HiveDatabase.settingsBox.get('printer_mac');
-      if (savedMac != null) {
-        final connected = await printerHelper.connect(savedMac);
-        if (!connected) {
-          emit(state.copyWith(
-              error: 'Failed to auto-connect to printer!', clearError: false));
-          emit(state.copyWith(clearError: true));
-          return;
-        }
-      } else {
-        emit(state.copyWith(
-            error: 'Printer not connected & no saved printer found!',
-            clearError: false));
-        emit(state.copyWith(clearError: true));
-        return;
-      }
+    final savedSale = saleId == null ? null : HiveDatabase.salesBox.get(saleId);
+    if (savedSale == null) {
+      emit(state.copyWith(
+          error: 'Saved bill not found for printing.', clearError: false));
+      emit(state.copyWith(clearError: true));
+      return;
     }
 
     emit(state.copyWith(
         isPrinting: true, printSuccess: false, clearError: true));
 
     try {
-      final items = state.cartItems
-          .map((item) => {
-                'name': item.product.name,
-                'qty': QuantityFormatter.format(item.quantity),
-                'price': item.product.price,
-                'total': item.total,
-              })
-          .toList();
-
-      await printerHelper.printReceipt(
-          shopName: event.shopName,
-          address1: event.address1,
-          address2: event.address2,
-          phone: event.phone,
-          upiId: event.upiId,
-          items: items,
-          total: state.totalAmount,
-          footer: event.footer);
+      await SalesStorage.printSavedSale(savedSale);
 
       emit(state.copyWith(isPrinting: false, printSuccess: true));
     } catch (e) {

@@ -46,6 +46,15 @@ class UpdatePaymentModeEvent extends BillingEvent {
   List<Object?> get props => [paymentMode];
 }
 
+class UpdateDiscountEvent extends BillingEvent {
+  final double discountAmount;
+
+  const UpdateDiscountEvent(this.discountAmount);
+
+  @override
+  List<Object?> get props => [discountAmount];
+}
+
 class SelectCustomerEvent extends BillingEvent {
   final Map<String, dynamic>? customer;
 

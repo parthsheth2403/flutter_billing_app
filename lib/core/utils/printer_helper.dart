@@ -151,8 +151,11 @@ class PrinterHelper {
     required String phone,
     required String upiId,
     required List<Map<String, dynamic>> items, // Name, Qty, Price, Total
+    double? subtotal,
+    double discount = 0,
     required double total,
     required String footer,
+    Map<String, dynamic>? customer,
     DateTime? createdAt,
   }) async {
     if (!await connectionStatus()) return;
@@ -173,16 +176,18 @@ class PrinterHelper {
     // Address & Phone (Normal, Center)
     bytes += EscPos.textNormal;
     bytes += EscPos.boldOff;
-    if (address1.isNotEmpty) {
-      bytes += _textToBytes(address1);
+    final addressLines = [
+      address1.trim(),
+      address2.trim(),
+    ].where((line) => line.isNotEmpty).toList();
+    if (addressLines.isNotEmpty) {
+      bytes += _textToBytes('Add: ${addressLines.join(', ')}');
       bytes += EscPos.lineFeed;
     }
-    if (address2.isNotEmpty) {
-      bytes += _textToBytes(address2);
+    if (phone.trim().isNotEmpty) {
+      bytes += _textToBytes('Mob: ${phone.trim()}');
       bytes += EscPos.lineFeed;
     }
-    bytes += _textToBytes(phone);
-    bytes += EscPos.lineFeed;
 
     // Date and Time
     String formattedDate =
@@ -190,29 +195,51 @@ class PrinterHelper {
     bytes += _textToBytes(formattedDate);
     bytes += EscPos.lineFeed;
 
+    if (customer != null) {
+      final customerName = customer['name']?.toString().trim() ?? '';
+      final customerMobile = customer['mobile']?.toString().trim() ?? '';
+      if (customerName.isNotEmpty || customerMobile.isNotEmpty) {
+        bytes += _textToBytes('--------------------------------');
+        bytes += EscPos.lineFeed;
+        if (customerName.isNotEmpty) {
+          bytes += _textToBytes('Customer: $customerName');
+          bytes += EscPos.lineFeed;
+        }
+        if (customerMobile.isNotEmpty) {
+          bytes += _textToBytes('Mobile: $customerMobile');
+          bytes += EscPos.lineFeed;
+        }
+      }
+    }
+
     bytes += _textToBytes('--------------------------------');
     bytes += EscPos.lineFeed;
 
     // Header (Align Left)
     bytes += EscPos.alignLeft;
-    bytes += _textToBytes('Item            Price   Total');
+    bytes += _textToBytes('Item          Price     Total');
     bytes += EscPos.lineFeed;
     bytes += _textToBytes('--------------------------------');
     bytes += EscPos.lineFeed;
 
     // Items
     for (var item in items) {
-      String name = item['name'].toString();
-      String qty = item['qty'].toString();
-      String price = item['price'].toString();
-      String totalItem = item['total'].toString();
+      final name = item['name'].toString().trim();
+      final qty = item['qty'].toString().trim();
+      final price = _formatAmount(item['price']);
+      final totalItem = _formatAmount(item['total']);
 
-      String prefix = '${qty}x $name';
-      if (prefix.length > 16) prefix = prefix.substring(0, 16);
-
-      String line = prefix.padRight(16) + price.padRight(8) + totalItem;
-      bytes += _textToBytes(line);
+      final nameLines = _wrapText('${qty}x $name', 14);
+      final firstNameLine = nameLines.isEmpty ? '' : nameLines.first;
+      bytes += _textToBytes(
+        firstNameLine.padRight(14) + price.padLeft(8) + totalItem.padLeft(10),
+      );
       bytes += EscPos.lineFeed;
+
+      for (final continuation in nameLines.skip(1)) {
+        bytes += _textToBytes('  $continuation');
+        bytes += EscPos.lineFeed;
+      }
     }
 
     bytes += _textToBytes('--------------------------------');
@@ -220,8 +247,15 @@ class PrinterHelper {
 
     // Total (Align Right)
     bytes += EscPos.alignRight;
+    if (discount > 0) {
+      final subtotalAmount = subtotal ?? total + discount;
+      bytes += _textToBytes('SUBTOTAL: ${subtotalAmount.toStringAsFixed(2)}');
+      bytes += EscPos.lineFeed;
+      bytes += _textToBytes('DISCOUNT: -${discount.toStringAsFixed(2)}');
+      bytes += EscPos.lineFeed;
+    }
     bytes += EscPos.boldOn;
-    bytes += _textToBytes('TOTAL: $total');
+    bytes += _textToBytes('TOTAL: ${total.toStringAsFixed(2)}');
     bytes += EscPos.lineFeed;
     bytes += EscPos.boldOff;
     bytes += EscPos.lineFeed;
@@ -241,7 +275,9 @@ class PrinterHelper {
       bytes += _textToBytes('UPI: ${upiId.trim()}');
       bytes += EscPos.lineFeed;
       bytes += EscPos.lineFeed;
+      bytes += EscPos.lineFeed;
       bytes += _qrCodeBytes(upiPayload);
+      bytes += EscPos.lineFeed;
       bytes += EscPos.lineFeed;
       bytes += EscPos.lineFeed;
     }
@@ -292,6 +328,48 @@ class PrinterHelper {
     return List.from(text.codeUnits);
   }
 
+  List<String> _wrapText(String text, int maxLength) {
+    final normalized = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.isEmpty) return const <String>[];
+
+    final words = normalized.split(' ');
+    final lines = <String>[];
+    var current = '';
+
+    for (final word in words) {
+      if (word.length > maxLength) {
+        if (current.isNotEmpty) {
+          lines.add(current);
+          current = '';
+        }
+        for (var index = 0; index < word.length; index += maxLength) {
+          final end =
+              index + maxLength > word.length ? word.length : index + maxLength;
+          lines.add(word.substring(index, end));
+        }
+      } else if (current.isEmpty) {
+        current = word;
+      } else if (current.length + word.length + 1 <= maxLength) {
+        current = '$current $word';
+      } else {
+        lines.add(current);
+        current = word;
+      }
+    }
+
+    if (current.isNotEmpty) {
+      lines.add(current);
+    }
+    return lines;
+  }
+
+  String _formatAmount(dynamic value) {
+    if (value is num) return value.toDouble().toStringAsFixed(2);
+    final parsed = double.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed.toStringAsFixed(2);
+    return value?.toString() ?? '';
+  }
+
   String _buildUpiPayload({
     required String upiId,
     required String shopName,
@@ -317,8 +395,11 @@ class PrinterHelper {
   List<int> _qrCodeBytes(String payload) {
     final data = utf8.encode(payload);
     final storeLength = data.length + 3;
+    const moduleSize = 6;
+    const errorCorrectionLow = 0x30;
 
     return <int>[
+      // QR model 2 is the most widely supported mode for ESC/POS printers.
       0x1D,
       0x28,
       0x6B,
@@ -328,6 +409,7 @@ class PrinterHelper {
       0x41,
       0x32,
       0x00,
+      // Module size. 6 is safer for 58mm printers and avoids QR clipping.
       0x1D,
       0x28,
       0x6B,
@@ -335,7 +417,8 @@ class PrinterHelper {
       0x00,
       0x31,
       0x43,
-      0x08,
+      moduleSize,
+      // Low correction is the most compatible across low-cost thermal printers.
       0x1D,
       0x28,
       0x6B,
@@ -343,7 +426,7 @@ class PrinterHelper {
       0x00,
       0x31,
       0x45,
-      0x30,
+      errorCorrectionLow,
       0x1D,
       0x28,
       0x6B,

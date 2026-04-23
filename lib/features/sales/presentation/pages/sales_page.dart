@@ -298,6 +298,8 @@ class SalesBillDetailsPage extends StatelessWidget {
     final createdAt = DateTime.tryParse(sale['createdAt']?.toString() ?? '') ??
         DateTime.now();
     final total = (sale['totalAmount'] as num?)?.toDouble() ?? 0;
+    final subtotal = (sale['subtotalAmount'] as num?)?.toDouble() ?? total;
+    final discount = (sale['discountAmount'] as num?)?.toDouble() ?? 0;
     final items = ((sale['items'] as List?) ?? []).cast<Map>();
     final customer = sale['customer'] as Map?;
 
@@ -368,6 +370,32 @@ class SalesBillDetailsPage extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (discount > 0) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          _AmountBreakupRow(
+                            label: 'Subtotal',
+                            value: '₹${subtotal.toStringAsFixed(2)}',
+                          ),
+                          const SizedBox(height: 8),
+                          _AmountBreakupRow(
+                            label: 'Discount',
+                            value: '- ₹${discount.toStringAsFixed(2)}',
+                            valueColor: const Color(0xFF16A34A),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -555,6 +583,43 @@ class _DetailStatCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AmountBreakupRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _AmountBreakupRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[600],
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: valueColor ?? const Color(0xFF334155),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -10,6 +10,7 @@ class BillingState extends Equatable {
   final String? saleId;
   final Map<String, dynamic>? selectedCustomer;
   final String paymentMode;
+  final double discountAmount;
 
   const BillingState({
     this.cartItems = const [],
@@ -21,9 +22,19 @@ class BillingState extends Equatable {
     this.saleId,
     this.selectedCustomer,
     this.paymentMode = 'Offline',
+    this.discountAmount = 0,
   });
 
-  double get totalAmount => cartItems.fold(0, (sum, item) => sum + item.total);
+  double get subtotalAmount =>
+      cartItems.fold(0, (sum, item) => sum + item.total);
+
+  double get effectiveDiscountAmount {
+    if (discountAmount <= 0) return 0;
+    if (discountAmount > subtotalAmount) return subtotalAmount;
+    return discountAmount;
+  }
+
+  double get totalAmount => subtotalAmount - effectiveDiscountAmount;
 
   BillingState copyWith({
     List<CartItem>? cartItems,
@@ -37,6 +48,7 @@ class BillingState extends Equatable {
     Map<String, dynamic>? selectedCustomer,
     bool clearCustomer = false,
     String? paymentMode,
+    double? discountAmount,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -49,6 +61,7 @@ class BillingState extends Equatable {
       selectedCustomer:
           clearCustomer ? null : (selectedCustomer ?? this.selectedCustomer),
       paymentMode: paymentMode ?? this.paymentMode,
+      discountAmount: discountAmount ?? this.discountAmount,
     );
   }
 
@@ -63,5 +76,6 @@ class BillingState extends Equatable {
         saleId,
         selectedCustomer,
         paymentMode,
+        discountAmount,
       ];
 }

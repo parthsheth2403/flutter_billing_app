@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../auth/shop_access_controller.dart';
 import '../data/hive_database.dart';
 import '../utils/printer_helper.dart';
 import '../../features/billing/domain/entities/cart_item.dart';
@@ -29,12 +30,18 @@ class SalesStorage {
     required String upiId,
     required String footer,
     required String paymentMode,
+    required double discountAmount,
     Map<String, dynamic>? customer,
   }) async {
     final now = DateTime.now();
     final saleId = 'SALE-${now.microsecondsSinceEpoch}';
-    final totalAmount =
+    final subtotalAmount =
         cartItems.fold<double>(0, (sum, item) => sum + item.total);
+    final effectiveDiscount =
+        discountAmount.isFinite && discountAmount > 0 ? discountAmount : 0.0;
+    final safeDiscount =
+        effectiveDiscount > subtotalAmount ? subtotalAmount : effectiveDiscount;
+    final totalAmount = subtotalAmount - safeDiscount;
 
     final sale = <String, dynamic>{
       'id': saleId,
@@ -47,6 +54,8 @@ class SalesStorage {
       'paymentMode': paymentMode,
       'customer': customer,
       'createdAt': now.toIso8601String(),
+      'subtotalAmount': subtotalAmount,
+      'discountAmount': safeDiscount,
       'totalAmount': totalAmount,
       'itemCount':
           cartItems.fold<double>(0, (sum, item) => sum + item.quantity),
@@ -111,16 +120,36 @@ class SalesStorage {
         .toList();
 
     await printerHelper.printReceipt(
-      shopName: sale['shopName']?.toString() ?? 'Mahavir Trading Company',
+      shopName: _firstNonEmpty(
+        sale['shopName']?.toString(),
+        ShopAccessController.instance.profile?.shopName,
+        'Mahavir Trading Company',
+      ),
       address1: sale['address1']?.toString() ?? '',
       address2: sale['address2']?.toString() ?? '',
-      phone: sale['phone']?.toString() ?? '',
+      phone: _firstNonEmpty(
+        sale['phone']?.toString(),
+        ShopAccessController.instance.profile?.mobileNumber,
+      ),
       upiId: sale['upiId']?.toString() ?? '',
       items: items,
+      subtotal: (sale['subtotalAmount'] as num?)?.toDouble(),
+      discount: (sale['discountAmount'] as num?)?.toDouble() ?? 0,
       total: (sale['totalAmount'] as num?)?.toDouble() ?? 0,
       footer: sale['footer']?.toString() ?? '',
+      customer: sale['customer'] is Map
+          ? Map<String, dynamic>.from(sale['customer'] as Map)
+          : null,
       createdAt: DateTime.tryParse(sale['createdAt']?.toString() ?? ''),
     );
+  }
+
+  static String _firstNonEmpty(String? first, [String? second, String? third]) {
+    for (final value in [first, second, third]) {
+      final trimmed = value?.trim() ?? '';
+      if (trimmed.isNotEmpty) return trimmed;
+    }
+    return '';
   }
 
   static SalesSnapshot buildSnapshot(Iterable<Map> sales) {
