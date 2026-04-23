@@ -12,6 +12,8 @@ import '../../features/billing/presentation/pages/scanner_page.dart';
 import '../../features/billing/presentation/pages/checkout_page.dart';
 import '../../features/sales/presentation/pages/sales_page.dart';
 import '../../features/customer/presentation/pages/customer_page.dart';
+import '../../features/expense/presentation/pages/expense_page.dart';
+import '../../features/payment_qr/presentation/pages/payment_qr_page.dart';
 import '../../features/product/domain/entities/product.dart';
 
 final router = GoRouter(
@@ -65,6 +67,14 @@ final router = GoRouter(
     GoRoute(
       path: '/customers',
       builder: (context, state) => const CustomerPage(),
+    ),
+    GoRoute(
+      path: '/payment-qr',
+      builder: (context, state) => const PaymentQrPage(),
+    ),
+    GoRoute(
+      path: '/expenses',
+      builder: (context, state) => const ExpensePage(),
     ),
     GoRoute(
       path: '/products',

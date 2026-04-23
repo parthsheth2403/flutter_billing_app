@@ -323,6 +323,42 @@ class PrinterHelper {
     await PrintBluetoothThermal.writeBytes(bytes);
   }
 
+  Future<void> printPaymentQr({
+    required String shopName,
+    required String upiId,
+    required double amount,
+  }) async {
+    if (!await connectionStatus()) return;
+
+    final upiPayload = _buildUpiPayload(
+      upiId: upiId,
+      shopName: shopName,
+      total: amount,
+    );
+
+    List<int> bytes = [];
+    bytes += EscPos.init;
+    bytes += EscPos.alignCenter;
+    bytes += EscPos.boldOn;
+    bytes += _textToBytes('SCAN & PAY');
+    bytes += EscPos.lineFeed;
+    bytes += EscPos.boldOff;
+    bytes += _textToBytes(shopName.trim().isEmpty ? 'Shop' : shopName.trim());
+    bytes += EscPos.lineFeed;
+    bytes += _textToBytes('Amount: ${amount.toStringAsFixed(2)}');
+    bytes += EscPos.lineFeed;
+    bytes += _textToBytes('UPI: ${upiId.trim()}');
+    bytes += EscPos.lineFeed;
+    bytes += EscPos.lineFeed;
+    bytes += EscPos.lineFeed;
+    bytes += _qrCodeBytes(upiPayload);
+    bytes += EscPos.lineFeed;
+    bytes += EscPos.lineFeed;
+    bytes += EscPos.lineFeed;
+
+    await PrintBluetoothThermal.writeBytes(bytes);
+  }
+
   List<int> _textToBytes(String text) {
     // Should verify encoding, but Latin-1 usually works for basic printers
     return List.from(text.codeUnits);

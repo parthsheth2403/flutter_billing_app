@@ -33,6 +33,7 @@ class _SalesPageState extends State<SalesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Sales'),
         centerTitle: true,
@@ -304,6 +305,7 @@ class SalesBillDetailsPage extends StatelessWidget {
     final customer = sale['customer'] as Map?;
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Bill Details'),
         centerTitle: true,
@@ -324,7 +326,7 @@ class SalesBillDetailsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    sale['shopName']?.toString() ?? 'Mahavir Trading Company',
+                    sale['shopName']?.toString() ?? 'Your Shop Name',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,

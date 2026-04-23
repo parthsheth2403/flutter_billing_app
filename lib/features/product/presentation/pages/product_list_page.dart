@@ -313,8 +313,9 @@ class _ProductListPageState extends State<ProductListPage> {
     final products = context.select((ProductBloc bloc) => bloc.state.products);
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.chevron_left,

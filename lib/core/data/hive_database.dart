@@ -8,6 +8,7 @@ class HiveDatabase {
   static const String settingsBoxName = 'settings';
   static const String salesBoxName = 'sales';
   static const String customerBoxName = 'customers';
+  static const String expenseBoxName = 'expenses';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -22,6 +23,7 @@ class HiveDatabase {
     await Hive.openBox(settingsBoxName); // Generic box for simple key-value
     await Hive.openBox<Map>(salesBoxName);
     await Hive.openBox<Map>(customerBoxName);
+    await Hive.openBox<Map>(expenseBoxName);
   }
 
   static Box<ProductModel> get productBox =>
@@ -30,4 +32,5 @@ class HiveDatabase {
   static Box get settingsBox => Hive.box(settingsBoxName);
   static Box<Map> get salesBox => Hive.box<Map>(salesBoxName);
   static Box<Map> get customerBox => Hive.box<Map>(customerBoxName);
+  static Box<Map> get expenseBox => Hive.box<Map>(expenseBoxName);
 }

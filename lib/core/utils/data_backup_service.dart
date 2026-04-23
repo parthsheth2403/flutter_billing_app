@@ -18,12 +18,14 @@ class BackupSnapshot {
   final int productCount;
   final int customerCount;
   final int saleCount;
+  final int expenseCount;
 
   const BackupSnapshot({
     required this.shopId,
     required this.productCount,
     required this.customerCount,
     required this.saleCount,
+    required this.expenseCount,
   });
 }
 
@@ -73,6 +75,7 @@ class DataBackupService {
       'settings': _normalizeValue(HiveDatabase.settingsBox.toMap()),
       'sales': _normalizeBoxEntries(HiveDatabase.salesBox),
       'customers': _normalizeBoxEntries(HiveDatabase.customerBox),
+      'expenses': _normalizeBoxEntries(HiveDatabase.expenseBox),
     };
 
     await file.writeAsString(
@@ -170,6 +173,9 @@ class DataBackupService {
     final customers = ((backup['customers'] as List?) ?? const <dynamic>[])
         .map((item) => Map<String, dynamic>.from(item as Map))
         .toList();
+    final expenses = ((backup['expenses'] as List?) ?? const <dynamic>[])
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
 
     await HiveDatabase.productBox.clear();
     for (final product in products) {
@@ -216,11 +222,19 @@ class DataBackupService {
       await HiveDatabase.customerBox.put(key, value);
     }
 
+    await HiveDatabase.expenseBox.clear();
+    for (final entry in expenses) {
+      final key = entry['key']?.toString() ?? '';
+      final value = Map<String, dynamic>.from(entry['value'] as Map);
+      await HiveDatabase.expenseBox.put(key, value);
+    }
+
     return BackupSnapshot(
       shopId: backupShopId,
       productCount: products.length,
       customerCount: customers.length,
       saleCount: sales.length,
+      expenseCount: expenses.length,
     );
   }
 

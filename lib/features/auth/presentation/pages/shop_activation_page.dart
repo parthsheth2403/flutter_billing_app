@@ -68,7 +68,7 @@ class _ShopActivationPageState extends State<ShopActivationPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Mahavir Trading Company',
+                    'Retail Billing App',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),

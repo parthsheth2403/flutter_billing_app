@@ -82,13 +82,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: borderColor),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE4E8E1)),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
+                                color: AppTheme.primaryColor
+                                    .withValues(alpha: 0.06),
+                                blurRadius: 14,
+                                offset: const Offset(0, 7),
                               )
                             ],
                           ),
@@ -104,7 +105,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 // Header row
                                 TableRow(
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFFF8FAFC),
+                                    color: Color(0xFFF6F8F4),
                                     border: Border(
                                         bottom: BorderSide(color: borderColor)),
                                   ),
@@ -181,8 +182,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE5E5EA)),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE4E8E1)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,8 +257,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE5E5EA)),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE4E8E1)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,17 +326,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return SafeArea(
       top: false,
       child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: const BorderRadius.horizontal(
-            left: Radius.circular(24),
-            right: Radius.circular(24),
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE4E8E1)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -417,28 +417,37 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ),
                     const SizedBox(height: 10),
                   ],
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'GRAND TOTAL',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[400],
-                          letterSpacing: 1.2,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '₹${billingState.totalAmount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
-                          color: Color(0xFF0F172A),
+                        Text(
+                          '₹ ${billingState.totalAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.4,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -581,12 +590,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.primaryColor.withValues(alpha: 0.10)
-              : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? AppTheme.primaryColor : Colors.white,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : const Color(0xFFE5E7EB),
+            color: isSelected ? AppTheme.primaryColor : const Color(0xFFBAC8C2),
           ),
         ),
         child: Row(
@@ -595,17 +602,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
             Icon(
               icon,
               size: 18,
-              color:
-                  isSelected ? AppTheme.primaryColor : const Color(0xFF64748B),
+              color: isSelected ? Colors.white : AppTheme.primaryColor,
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: isSelected
-                    ? AppTheme.primaryColor
-                    : const Color(0xFF334155),
+                color: isSelected ? Colors.white : const Color(0xFF334155),
               ),
             ),
           ],

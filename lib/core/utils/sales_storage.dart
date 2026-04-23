@@ -123,7 +123,7 @@ class SalesStorage {
       shopName: _firstNonEmpty(
         sale['shopName']?.toString(),
         ShopAccessController.instance.profile?.shopName,
-        'Mahavir Trading Company',
+        'Your Shop Name',
       ),
       address1: sale['address1']?.toString() ?? '',
       address2: sale['address2']?.toString() ?? '',

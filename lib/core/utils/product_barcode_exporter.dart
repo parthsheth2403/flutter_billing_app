@@ -42,7 +42,7 @@ class ProductBarcodeExporter {
       ..writeln('</style>')
       ..writeln('</head>')
       ..writeln('<body>')
-      ..writeln('<h1>Mahavir Trading Company</h1>')
+      ..writeln('<h1>Retail Billing App</h1>')
       ..writeln(
           '<p>Product barcode sheet with item name, price, and barcode number.</p>')
       ..writeln('<div class="grid">');

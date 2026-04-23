@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF17594A);
-  static const Color secondaryColor = Color(0xFFC58B2C);
-  static const Color backgroundColor = Color(0xFFF5F1E8);
-  static const Color surfaceColor = Color(0xFFFFFCF7);
+  static const Color primaryColor = Color(0xFF123F3D);
+  static const Color secondaryColor = Color(0xFFB68A2A);
+  static const Color backgroundColor = Color(0xFFF4F6F2);
+  static const Color surfaceColor = Color(0xFFFAFBF7);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color textColor = Color(0xFF1F2937);
   static const Color mutedTextColor = Color(0xFF64748B);
-  static const Color borderColor = Color(0xFFE4DCCF);
+  static const Color borderColor = Color(0xFFE2E7DF);
   static const Color errorColor = Color(0xFFC2410C);
 
   static final TextTheme textTheme = GoogleFonts.plusJakartaSansTextTheme(
@@ -82,6 +83,13 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemNavigationBarColor: backgroundColor,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
         titleTextStyle: textTheme.titleLarge,
         iconTheme: const IconThemeData(color: textColor),
       ),
@@ -99,7 +107,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shadowColor: primaryColor.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(14),
           side: const BorderSide(color: borderColor),
         ),
       ),

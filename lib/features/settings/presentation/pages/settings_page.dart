@@ -35,11 +35,12 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Settings',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.chevron_left,
@@ -60,7 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                 child: BlocBuilder<ShopBloc, ShopState>(
                   builder: (context, state) {
-                    String shopName = 'Elite Groceries';
+                    String shopName = 'Retail Billing App';
                     String initials = 'EG';
                     if (state is ShopLoaded && state.shop.name.isNotEmpty) {
                       shopName = state.shop.name;
@@ -173,7 +174,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.upload_file_rounded,
                     title: 'Export Backup',
                     subtitle:
-                        'Create one file with products, customers, sales, shop, and settings',
+                        'Create one file with products, customers, sales, expenses, shop, and settings',
                     trailingWidget: _isExportingBackup
                         ? const SizedBox(
                             width: 24,
@@ -299,6 +300,45 @@ class _SettingsPageState extends State<SettingsPage> {
                           ],
                         ),
                       ),
+                      _buildDivider(),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: state.connectedMac == null ||
+                                    state.status == PrinterStatus.connecting ||
+                                    state.status == PrinterStatus.testPrinting
+                                ? null
+                                : () {
+                                    context.read<PrinterBloc>().add(
+                                          TestPrintEvent(_currentShopName()),
+                                        );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Sending test page to printer...',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            icon: state.status == PrinterStatus.testPrinting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.receipt_long_rounded),
+                            label: Text(
+                              state.connectedMac == null
+                                  ? 'Connect Printer To Test'
+                                  : 'Print Test Page',
+                            ),
+                          ),
+                        ),
+                      ),
                       if (devices.isNotEmpty) ...[
                         _buildDivider(),
                         ...devices.asMap().entries.map((entry) {
@@ -421,7 +461,7 @@ class _SettingsPageState extends State<SettingsPage> {
             return AlertDialog(
               title: const Text('Import Backup'),
               content: const Text(
-                'This will replace all current local products, customers, sales, shop details, and saved settings with the selected backup file. Continue?',
+                'This will replace all current local products, customers, sales, expenses, shop details, and saved settings with the selected backup file. Continue?',
               ),
               actions: [
                 TextButton(
@@ -458,7 +498,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Backup imported for ${snapshot.shopId ?? 'this shop'}: ${snapshot.productCount} products, ${snapshot.customerCount} customers, ${snapshot.saleCount} sales restored.',
+            'Backup imported for ${snapshot.shopId ?? 'this shop'}: ${snapshot.productCount} products, ${snapshot.customerCount} customers, ${snapshot.saleCount} sales, ${snapshot.expenseCount} expenses restored.',
           ),
           backgroundColor: Colors.green,
         ),
@@ -593,5 +633,13 @@ class _SettingsPageState extends State<SettingsPage> {
     await _accessController.logout();
     if (!mounted) return;
     context.go('/activate');
+  }
+
+  String _currentShopName() {
+    final state = context.read<ShopBloc>().state;
+    if (state is ShopLoaded && state.shop.name.trim().isNotEmpty) {
+      return state.shop.name.trim();
+    }
+    return 'Retail Billing App';
   }
 }
