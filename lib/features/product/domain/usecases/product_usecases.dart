@@ -26,6 +26,17 @@ class AddProductUseCase implements UseCase<void, Product> {
   }
 }
 
+class AddProductsUseCase implements UseCase<void, List<Product>> {
+  final ProductRepository repository;
+
+  AddProductsUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(List<Product> params) {
+    return repository.addProducts(params);
+  }
+}
+
 class UpdateProductUseCase implements UseCase<void, Product> {
   final ProductRepository repository;
 

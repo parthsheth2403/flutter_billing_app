@@ -21,9 +21,11 @@ class AddProductPage extends StatefulWidget {
 class _AddProductPageState extends State<AddProductPage> {
   final _formKey = GlobalKey<FormState>();
   final _barcodeController = TextEditingController();
+  final _brandController = TextEditingController();
   String _name = '';
   String _barcode = '';
   double _price = 0.0;
+  String _brand = '';
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   void dispose() {
     _barcodeController.dispose();
+    _brandController.dispose();
     super.dispose();
   }
 
@@ -73,6 +76,7 @@ class _AddProductPageState extends State<AddProductPage> {
         name: _name,
         barcode: _barcode,
         price: _price,
+        brand: _brand,
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -150,6 +154,16 @@ class _AddProductPageState extends State<AddProductPage> {
                     textCapitalization: TextCapitalization.words,
                     validator: AppValidators.required('Please enter a name'),
                     onSaved: (value) => _name = value!,
+                  ),
+                  const SizedBox(height: 24),
+                  const InputLabel(text: 'Brand'),
+                  TextFormField(
+                    controller: _brandController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Tata, Fortune',
+                    ),
+                    onSaved: (value) => _brand = value?.trim() ?? '',
                   ),
                   const SizedBox(height: 24),
                   const InputLabel(text: 'Selling Price'),

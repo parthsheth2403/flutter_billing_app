@@ -20,6 +20,7 @@ Future<void> init() async {
     () => ProductBloc(
       getProductsUseCase: sl(),
       addProductUseCase: sl(),
+      addProductsUseCase: sl(),
       updateProductUseCase: sl(),
       deleteProductUseCase: sl(),
     ),
@@ -41,6 +42,7 @@ Future<void> init() async {
   // Use cases
   sl.registerLazySingleton(() => GetProductsUseCase(sl()));
   sl.registerLazySingleton(() => AddProductUseCase(sl()));
+  sl.registerLazySingleton(() => AddProductsUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProductUseCase(sl()));
   sl.registerLazySingleton(() => DeleteProductUseCase(sl()));
   sl.registerLazySingleton(() => GetProductByBarcodeUseCase(sl()));

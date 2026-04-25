@@ -5,8 +5,10 @@ import 'package:app_settings/app_settings.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/auth/shop_access_controller.dart';
+import '../../../../core/utils/billing_settings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/data_backup_service.dart';
+import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../product/presentation/bloc/product_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
@@ -24,12 +26,27 @@ class _SettingsPageState extends State<SettingsPage> {
   final ShopAccessController _accessController = ShopAccessController.instance;
   bool _isExportingBackup = false;
   bool _isImportingBackup = false;
+  bool _gstEnabled = BillingSettings.isGstEnabled;
+  late final TextEditingController _gstRateController;
 
   @override
   void initState() {
     super.initState();
+    _gstRateController = TextEditingController(
+      text: BillingSettings.gstRate.toStringAsFixed(
+        BillingSettings.gstRate == BillingSettings.gstRate.roundToDouble()
+            ? 0
+            : 2,
+      ),
+    );
     // Re-initialize printer state whenever settings page opens
     context.read<PrinterBloc>().add(InitPrinterEvent());
+  }
+
+  @override
+  void dispose() {
+    _gstRateController.dispose();
+    super.dispose();
   }
 
   @override
@@ -125,6 +142,70 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'Shop Details',
                     subtitle: 'Edit business info & address',
                     onTap: () => context.push('/shop'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              _buildSectionHeader('Billing'),
+              _buildListGroup(
+                children: [
+                  SwitchListTile(
+                    value: _gstEnabled,
+                    onChanged: (value) => _saveGstSettings(enabled: value),
+                    title: const Text(
+                      'Enable GST',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Apply GST in billing, saved sales, and printed receipts',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    activeThumbColor: AppTheme.primaryColor,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                  ),
+                  _buildDivider(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'GST Rate (%)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _gstRateController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: '18',
+                            suffixText: '%',
+                          ),
+                          onSubmitted: (_) => _saveGstSettings(),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: OutlinedButton(
+                            onPressed: _saveGstSettings,
+                            child: const Text('Save GST'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -452,6 +533,43 @@ class _SettingsPageState extends State<SettingsPage> {
         setState(() => _isExportingBackup = false);
       }
     }
+  }
+
+  Future<void> _saveGstSettings({bool? enabled}) async {
+    final parsedRate = double.tryParse(_gstRateController.text.trim());
+    if (parsedRate == null || parsedRate < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter a valid GST rate'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final resolvedEnabled = enabled ?? _gstEnabled;
+    await BillingSettings.saveGstSettings(
+      enabled: resolvedEnabled,
+      rate: parsedRate,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _gstEnabled = resolvedEnabled;
+      _gstRateController.text = parsedRate.toStringAsFixed(
+        parsedRate == parsedRate.roundToDouble() ? 0 : 2,
+      );
+    });
+
+    context.read<BillingBloc>().add(RefreshBillingPreferencesEvent());
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('GST settings saved'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   Future<void> _importBackup() async {

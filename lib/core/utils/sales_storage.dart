@@ -20,6 +20,20 @@ class SalesSnapshot {
   });
 }
 
+class ProductSalesSummary {
+  final String productName;
+  final String barcode;
+  final double quantitySold;
+  final double totalSales;
+
+  const ProductSalesSummary({
+    required this.productName,
+    required this.barcode,
+    required this.quantitySold,
+    required this.totalSales,
+  });
+}
+
 class SalesStorage {
   static Future<String> saveSale({
     required List<CartItem> cartItems,
@@ -31,6 +45,8 @@ class SalesStorage {
     required String footer,
     required String paymentMode,
     required double discountAmount,
+    required bool gstEnabled,
+    required double gstRate,
     Map<String, dynamic>? customer,
   }) async {
     final now = DateTime.now();
@@ -41,7 +57,12 @@ class SalesStorage {
         discountAmount.isFinite && discountAmount > 0 ? discountAmount : 0.0;
     final safeDiscount =
         effectiveDiscount > subtotalAmount ? subtotalAmount : effectiveDiscount;
-    final totalAmount = subtotalAmount - safeDiscount;
+    final taxableAmount = subtotalAmount - safeDiscount;
+    final safeGstRate = gstRate.isFinite && gstRate > 0 ? gstRate : 0.0;
+    final gstAmount = gstEnabled && taxableAmount > 0
+        ? (taxableAmount * safeGstRate) / 100
+        : 0.0;
+    final totalAmount = taxableAmount + gstAmount;
 
     final sale = <String, dynamic>{
       'id': saleId,
@@ -56,6 +77,10 @@ class SalesStorage {
       'createdAt': now.toIso8601String(),
       'subtotalAmount': subtotalAmount,
       'discountAmount': safeDiscount,
+      'taxableAmount': taxableAmount,
+      'gstEnabled': gstEnabled,
+      'gstRate': safeGstRate,
+      'gstAmount': gstAmount,
       'totalAmount': totalAmount,
       'itemCount':
           cartItems.fold<double>(0, (sum, item) => sum + item.quantity),
@@ -65,6 +90,7 @@ class SalesStorage {
               'productId': item.product.id,
               'productName': item.product.name,
               'barcode': item.product.barcode,
+              'brand': item.product.brand,
               'quantity': item.quantity,
               'unitPrice': item.product.price,
               'lineTotal': item.total,
@@ -135,6 +161,9 @@ class SalesStorage {
       items: items,
       subtotal: (sale['subtotalAmount'] as num?)?.toDouble(),
       discount: (sale['discountAmount'] as num?)?.toDouble() ?? 0,
+      gstEnabled: sale['gstEnabled'] == true,
+      gstRate: (sale['gstRate'] as num?)?.toDouble() ?? 0,
+      gstAmount: (sale['gstAmount'] as num?)?.toDouble() ?? 0,
       total: (sale['totalAmount'] as num?)?.toDouble() ?? 0,
       footer: sale['footer']?.toString() ?? '',
       customer: sale['customer'] is Map
@@ -184,5 +213,38 @@ class SalesStorage {
       monthSales: monthSales,
       monthBills: monthBills,
     );
+  }
+
+  static List<ProductSalesSummary> buildProductPerformance(
+      Iterable<Map> sales) {
+    final aggregate = <String, ProductSalesSummary>{};
+
+    for (final sale in sales) {
+      final items = ((sale['items'] as List?) ?? const <dynamic>[]).cast<Map>();
+      for (final item in items) {
+        final barcode = item['barcode']?.toString() ?? '';
+        final name = item['productName']?.toString() ?? 'Item';
+        final key = barcode.isNotEmpty ? barcode : name.toLowerCase().trim();
+        final quantity = (item['quantity'] as num?)?.toDouble() ?? 0;
+        final lineTotal = (item['lineTotal'] as num?)?.toDouble() ?? 0;
+        final current = aggregate[key];
+
+        aggregate[key] = ProductSalesSummary(
+          productName: name,
+          barcode: barcode,
+          quantitySold: (current?.quantitySold ?? 0) + quantity,
+          totalSales: (current?.totalSales ?? 0) + lineTotal,
+        );
+      }
+    }
+
+    final items = aggregate.values.toList()
+      ..sort((first, second) {
+        final quantityCompare =
+            second.quantitySold.compareTo(first.quantitySold);
+        if (quantityCompare != 0) return quantityCompare;
+        return second.totalSales.compareTo(first.totalSales);
+      });
+    return items;
   }
 }

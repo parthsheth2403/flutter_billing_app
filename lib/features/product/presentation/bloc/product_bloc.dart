@@ -10,17 +10,20 @@ part 'product_state.dart';
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final GetProductsUseCase getProductsUseCase;
   final AddProductUseCase addProductUseCase;
+  final AddProductsUseCase addProductsUseCase;
   final UpdateProductUseCase updateProductUseCase;
   final DeleteProductUseCase deleteProductUseCase;
 
   ProductBloc({
     required this.getProductsUseCase,
     required this.addProductUseCase,
+    required this.addProductsUseCase,
     required this.updateProductUseCase,
     required this.deleteProductUseCase,
   }) : super(const ProductState()) {
     on<LoadProducts>(_onLoadProducts);
     on<AddProduct>(_onAddProduct);
+    on<AddProducts>(_onAddProducts);
     on<UpdateProduct>(_onUpdateProduct);
     on<DeleteProduct>(_onDeleteProduct);
   }
@@ -39,7 +42,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   Future<void> _onAddProduct(
       AddProduct event, Emitter<ProductState> emit) async {
-    emit(state.copyWith(status: ProductStatus.loading)); // Keep products
+    emit(state.copyWith(status: ProductStatus.loading));
     final result = await addProductUseCase(event.product);
     result.fold(
       (failure) => emit(state.copyWith(
@@ -48,6 +51,23 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         emit(state.copyWith(
             status: ProductStatus.success,
             message: 'Product added successfully'));
+        add(LoadProducts());
+      },
+    );
+  }
+
+  Future<void> _onAddProducts(
+      AddProducts event, Emitter<ProductState> emit) async {
+    emit(state.copyWith(status: ProductStatus.loading));
+    final result = await addProductsUseCase(event.products);
+    result.fold(
+      (failure) => emit(state.copyWith(
+          status: ProductStatus.error, message: failure.message)),
+      (_) {
+        emit(state.copyWith(
+          status: ProductStatus.success,
+          message: event.message ?? 'Products added successfully',
+        ));
         add(LoadProducts());
       },
     );

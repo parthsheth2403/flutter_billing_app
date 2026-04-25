@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/data/hive_database.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/utils/sales_excel_exporter.dart';
 import '../../../../core/utils/sales_storage.dart';
 
 class SalesPage extends StatefulWidget {
@@ -28,6 +29,40 @@ class _SalesPageState extends State<SalesPage> {
 
     if (picked == null) return;
     setState(() => _selectedDate = picked);
+  }
+
+  Future<void> _exportSalesReport(List<Map> sales) async {
+    if (sales.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No sales available for export.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final file = await SalesExcelExporter.export(
+        sales: sales,
+        selectedDate: _selectedDate,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sales report saved to ${file.path}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -54,6 +89,8 @@ class _SalesPageState extends State<SalesPage> {
                         DateUtils.isSameDay(createdAt, _selectedDate);
                   }).toList();
             final snapshot = SalesStorage.buildSnapshot(sales);
+            final productSummary =
+                SalesStorage.buildProductPerformance(filteredSales);
             final filteredTotal = filteredSales.fold<double>(
               0,
               (sum, sale) =>
@@ -108,6 +145,23 @@ class _SalesPageState extends State<SalesPage> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           alignment: WrapAlignment.end,
                           children: [
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  _exportSalesReport(filteredSales),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              icon: const Icon(
+                                Icons.table_view_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Export Excel'),
+                            ),
                             OutlinedButton.icon(
                               onPressed: _pickDate,
                               style: OutlinedButton.styleFrom(
@@ -173,6 +227,38 @@ class _SalesPageState extends State<SalesPage> {
                       ],
                     ),
                   ),
+                if (productSummary.isNotEmpty) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Product Quantity Summary',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'This helps you understand which products moved the most.',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 14),
+                        ...productSummary.take(5).map(
+                            (item) => _ProductSalesSummaryTile(item: item)),
+                      ],
+                    ),
+                  ),
+                ],
                 if (filteredSales.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 40),
@@ -186,6 +272,69 @@ class _SalesPageState extends State<SalesPage> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ProductSalesSummaryTile extends StatelessWidget {
+  final ProductSalesSummary item;
+
+  const _ProductSalesSummaryTile({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final quantity = item.quantitySold;
+    final quantityLabel = quantity == quantity.roundToDouble()
+        ? quantity.toInt().toString()
+        : quantity.toStringAsFixed(2);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.productName,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (item.barcode.trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    item.barcode,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$quantityLabel qty',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '₹${item.totalSales.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -301,6 +450,8 @@ class SalesBillDetailsPage extends StatelessWidget {
     final total = (sale['totalAmount'] as num?)?.toDouble() ?? 0;
     final subtotal = (sale['subtotalAmount'] as num?)?.toDouble() ?? total;
     final discount = (sale['discountAmount'] as num?)?.toDouble() ?? 0;
+    final gstAmount = (sale['gstAmount'] as num?)?.toDouble() ?? 0;
+    final gstRate = (sale['gstRate'] as num?)?.toDouble() ?? 0;
     final items = ((sale['items'] as List?) ?? []).cast<Map>();
     final customer = sale['customer'] as Map?;
 
@@ -372,7 +523,7 @@ class SalesBillDetailsPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (discount > 0) ...[
+                  if (discount > 0 || gstAmount > 0) ...[
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
@@ -394,6 +545,14 @@ class SalesBillDetailsPage extends StatelessWidget {
                             value: '- ₹${discount.toStringAsFixed(2)}',
                             valueColor: const Color(0xFF16A34A),
                           ),
+                          if (gstAmount > 0) ...[
+                            const SizedBox(height: 8),
+                            _AmountBreakupRow(
+                              label:
+                                  'GST (${gstRate.toStringAsFixed(gstRate == gstRate.roundToDouble() ? 0 : 2)}%)',
+                              value: '₹${gstAmount.toStringAsFixed(2)}',
+                            ),
+                          ],
                         ],
                       ),
                     ),

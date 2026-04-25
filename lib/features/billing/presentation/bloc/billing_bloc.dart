@@ -4,6 +4,7 @@ import 'package:billing_app/features/product/domain/entities/product.dart';
 
 import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
 import '../../../../core/data/hive_database.dart';
+import '../../../../core/utils/billing_settings.dart';
 import '../../../../core/utils/feedback_helper.dart';
 import '../../../../core/utils/sales_storage.dart';
 import '../../domain/entities/cart_item.dart';
@@ -23,9 +24,12 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<ClearCartEvent>(_onClearCart);
     on<UpdatePaymentModeEvent>(_onUpdatePaymentMode);
     on<UpdateDiscountEvent>(_onUpdateDiscount);
+    on<RefreshBillingPreferencesEvent>(_onRefreshBillingPreferences);
     on<SelectCustomerEvent>(_onSelectCustomer);
     on<SaveBillEvent>(_onSaveBill);
     on<PrintReceiptEvent>(_onPrintReceipt);
+
+    add(RefreshBillingPreferencesEvent());
   }
 
   Future<void> _onScanBarcode(
@@ -112,6 +116,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     ));
   }
 
+  void _onRefreshBillingPreferences(
+      RefreshBillingPreferencesEvent event, Emitter<BillingState> emit) {
+    emit(state.copyWith(
+      gstEnabled: BillingSettings.isGstEnabled,
+      gstRate: BillingSettings.gstRate,
+    ));
+  }
+
   Future<void> _onSaveBill(
       SaveBillEvent event, Emitter<BillingState> emit) async {
     if (state.saleRecorded || state.cartItems.isEmpty) {
@@ -131,6 +143,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         footer: event.footer,
         paymentMode: event.paymentMode,
         discountAmount: state.effectiveDiscountAmount,
+        gstEnabled: state.gstEnabled,
+        gstRate: state.gstRate,
         customer: event.customer,
       );
 
@@ -162,6 +176,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         footer: event.footer,
         paymentMode: event.paymentMode,
         discountAmount: state.effectiveDiscountAmount,
+        gstEnabled: state.gstEnabled,
+        gstRate: state.gstRate,
         customer: event.customer,
       );
       emit(state.copyWith(saleRecorded: true, saleId: saleId));

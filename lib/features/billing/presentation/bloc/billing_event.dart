@@ -55,6 +55,8 @@ class UpdateDiscountEvent extends BillingEvent {
   List<Object?> get props => [discountAmount];
 }
 
+class RefreshBillingPreferencesEvent extends BillingEvent {}
+
 class SelectCustomerEvent extends BillingEvent {
   final Map<String, dynamic>? customer;
 

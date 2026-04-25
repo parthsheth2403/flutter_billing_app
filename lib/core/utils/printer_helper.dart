@@ -153,6 +153,9 @@ class PrinterHelper {
     required List<Map<String, dynamic>> items, // Name, Qty, Price, Total
     double? subtotal,
     double discount = 0,
+    bool gstEnabled = false,
+    double gstRate = 0,
+    double gstAmount = 0,
     required double total,
     required String footer,
     Map<String, dynamic>? customer,
@@ -252,6 +255,11 @@ class PrinterHelper {
       bytes += _textToBytes('SUBTOTAL: ${subtotalAmount.toStringAsFixed(2)}');
       bytes += EscPos.lineFeed;
       bytes += _textToBytes('DISCOUNT: -${discount.toStringAsFixed(2)}');
+      bytes += EscPos.lineFeed;
+    }
+    if (gstEnabled && gstAmount > 0) {
+      bytes += _textToBytes(
+          'GST (${gstRate.toStringAsFixed(gstRate == gstRate.roundToDouble() ? 0 : 2)}%): ${gstAmount.toStringAsFixed(2)}');
       bytes += EscPos.lineFeed;
     }
     bytes += EscPos.boldOn;

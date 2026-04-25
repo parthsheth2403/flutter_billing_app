@@ -371,7 +371,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ),
                   ],
                   const SizedBox(height: 15),
-                  if (billingState.effectiveDiscountAmount > 0) ...[
+                  if (billingState.effectiveDiscountAmount > 0 ||
+                      billingState.gstAmount > 0) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -415,6 +416,30 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         ),
                       ],
                     ),
+                    if (billingState.gstAmount > 0) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'GST (${billingState.gstRate.toStringAsFixed(billingState.gstRate == billingState.gstRate.roundToDouble() ? 0 : 2)}%)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            '₹${billingState.gstAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 10),
                   ],
                   Container(

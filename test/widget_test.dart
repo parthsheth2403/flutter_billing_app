@@ -16,6 +16,7 @@ void main() {
     final productBloc = ProductBloc(
       getProductsUseCase: GetProductsUseCase(repository),
       addProductUseCase: AddProductUseCase(repository),
+      addProductsUseCase: AddProductsUseCase(repository),
       updateProductUseCase: UpdateProductUseCase(repository),
       deleteProductUseCase: DeleteProductUseCase(repository),
     );
@@ -51,6 +52,11 @@ void main() {
 class _FakeProductRepository implements ProductRepository {
   @override
   Future<Either<Failure, void>> addProduct(Product product) async {
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> addProducts(List<Product> products) async {
     return const Right(null);
   }
 

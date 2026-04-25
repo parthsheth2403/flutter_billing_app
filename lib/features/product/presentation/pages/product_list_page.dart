@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
+import '../../../../core/data/hive_database.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/product_barcode_exporter.dart';
 import '../../../../core/utils/printer_helper.dart';
-import '../../../../core/data/hive_database.dart';
 import '../../domain/entities/product.dart';
 import '../bloc/product_bloc.dart';
 
@@ -322,7 +322,7 @@ class _ProductListPageState extends State<ProductListPage> {
               size: 28, color: Theme.of(context).primaryColor),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Grocery Products',
+        title: const Text('Product List',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         actions: [
@@ -423,7 +423,10 @@ class _ProductListPageState extends State<ProductListPage> {
                   final filteredProducts = state.products
                       .where((product) =>
                           product.name.toLowerCase().contains(_searchQuery) ||
-                          product.barcode.toLowerCase().contains(_searchQuery))
+                          product.barcode
+                              .toLowerCase()
+                              .contains(_searchQuery) ||
+                          product.brand.toLowerCase().contains(_searchQuery))
                       .toList();
 
                   if (filteredProducts.isEmpty) {
@@ -452,93 +455,88 @@ class _ProductListPageState extends State<ProductListPage> {
                           ],
                         ),
                         padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            Text(
+                              product.name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 16),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '₹${product.price.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[600]),
+                            ),
+                            if (product.brand.trim().isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Brand: ${product.brand}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 4),
+                            Text(
+                              'Barcode: ${product.barcode}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
                                 children: [
-                                  Text(
-                                    product.name,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16),
+                                  _ProductActionButton(
+                                    backgroundColor: const Color(0xFFEEF2FF),
+                                    icon: Icons.qr_code_2_rounded,
+                                    iconColor: const Color(0xFF4338CA),
+                                    tooltip: 'Show Barcode',
+                                    onPressed: () => _showBarcode(product),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '₹${product.price.toStringAsFixed(2)}',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey[600]),
+                                  _ProductActionButton(
+                                    backgroundColor: const Color(0xFFECFDF3),
+                                    icon: Icons.print_rounded,
+                                    iconColor: const Color(0xFF166534),
+                                    tooltip: 'Print Barcode',
+                                    onPressed: () => _printBarcode(product),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Barcode: ${product.barcode}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[500],
+                                  _ProductActionButton(
+                                    backgroundColor:
+                                        AppTheme.primaryColor.withValues(
+                                      alpha: 0.1,
                                     ),
+                                    icon: Icons.edit_rounded,
+                                    iconColor: AppTheme.primaryColor,
+                                    tooltip: 'Edit Product',
+                                    onPressed: () {
+                                      context.push(
+                                        '/products/edit/${product.id}',
+                                        extra: product,
+                                      );
+                                    },
+                                  ),
+                                  _ProductActionButton(
+                                    backgroundColor:
+                                        Colors.red.withValues(alpha: 0.1),
+                                    icon: Icons.delete_outline_rounded,
+                                    iconColor: Colors.red,
+                                    tooltip: 'Delete Product',
+                                    onPressed: () =>
+                                        _confirmDelete(context, product),
                                   ),
                                 ],
                               ),
                             ),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _ProductActionButton(
-                                      backgroundColor: const Color(0xFFEEF2FF),
-                                      icon: Icons.qr_code_2_rounded,
-                                      iconColor: const Color(0xFF4338CA),
-                                      tooltip: 'Show Barcode',
-                                      onPressed: () => _showBarcode(product),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _ProductActionButton(
-                                      backgroundColor: const Color(0xFFECFDF3),
-                                      icon: Icons.print_rounded,
-                                      iconColor: const Color(0xFF166534),
-                                      tooltip: 'Print Barcode',
-                                      onPressed: () => _printBarcode(product),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _ProductActionButton(
-                                      backgroundColor:
-                                          AppTheme.primaryColor.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      icon: Icons.edit_rounded,
-                                      iconColor: AppTheme.primaryColor,
-                                      tooltip: 'Edit Product',
-                                      onPressed: () {
-                                        context.push(
-                                          '/products/edit/${product.id}',
-                                          extra: product,
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _ProductActionButton(
-                                      backgroundColor:
-                                          Colors.red.withValues(alpha: 0.1),
-                                      icon: Icons.delete_outline_rounded,
-                                      iconColor: Colors.red,
-                                      tooltip: 'Delete Product',
-                                      onPressed: () =>
-                                          _confirmDelete(context, product),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
                           ],
                         ),
                       );
@@ -549,13 +547,6 @@ class _ProductListPageState extends State<ProductListPage> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/products/add'),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 32),
       ),
     );
   }

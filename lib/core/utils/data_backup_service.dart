@@ -55,6 +55,7 @@ class DataBackupService {
               'name': product.name,
               'barcode': product.barcode,
               'price': product.price,
+              'brand': product.brand,
               'stock': product.stock,
             },
           )
@@ -185,6 +186,7 @@ class DataBackupService {
         barcode: product['barcode']?.toString() ?? '',
         price: (product['price'] as num?)?.toDouble() ?? 0,
         stock: (product['stock'] as num?)?.toInt() ?? 0,
+        brand: product['brand']?.toString() ?? '',
       );
       await HiveDatabase.productBox.put(model.id, model);
     }

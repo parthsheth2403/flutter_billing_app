@@ -21,12 +21,14 @@ class _EditProductPageState extends State<EditProductPage> {
   final _formKey = GlobalKey<FormState>();
   late String _name;
   late double _price;
+  late String _brand;
 
   @override
   void initState() {
     super.initState();
     _name = widget.product.name;
     _price = widget.product.price;
+    _brand = widget.product.brand;
   }
 
   void _submit() {
@@ -38,6 +40,8 @@ class _EditProductPageState extends State<EditProductPage> {
         name: _name,
         barcode: widget.product.barcode,
         price: _price,
+        brand: _brand,
+        stock: widget.product.stock,
       );
 
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
@@ -110,6 +114,16 @@ class _EditProductPageState extends State<EditProductPage> {
                     textCapitalization: TextCapitalization.words,
                     validator: AppValidators.required('Please enter a name'),
                     onSaved: (value) => _name = value!,
+                  ),
+                  const SizedBox(height: 24),
+                  const InputLabel(text: 'Brand'),
+                  TextFormField(
+                    initialValue: _brand,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Tata, Fortune',
+                    ),
+                    onSaved: (value) => _brand = value?.trim() ?? '',
                   ),
                   const SizedBox(height: 24),
 

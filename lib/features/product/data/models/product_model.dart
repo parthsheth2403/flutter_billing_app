@@ -20,6 +20,9 @@ class ProductModel extends Product {
   @override
   @HiveField(4)
   final int stock;
+  @override
+  @HiveField(5)
+  final String brand;
 
   const ProductModel({
     required this.id,
@@ -27,11 +30,13 @@ class ProductModel extends Product {
     required this.barcode,
     required this.price,
     required this.stock,
+    required this.brand,
   }) : super(
           id: id,
           name: name,
           barcode: barcode,
           price: price,
+          brand: brand,
           stock: stock,
         );
 
@@ -42,6 +47,7 @@ class ProductModel extends Product {
       barcode: product.barcode,
       price: product.price,
       stock: product.stock,
+      brand: product.brand,
     );
   }
 
@@ -51,6 +57,7 @@ class ProductModel extends Product {
       name: name,
       barcode: barcode,
       price: price,
+      brand: brand,
       stock: stock,
     );
   }

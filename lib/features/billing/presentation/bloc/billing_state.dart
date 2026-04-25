@@ -11,6 +11,8 @@ class BillingState extends Equatable {
   final Map<String, dynamic>? selectedCustomer;
   final String paymentMode;
   final double discountAmount;
+  final bool gstEnabled;
+  final double gstRate;
 
   const BillingState({
     this.cartItems = const [],
@@ -23,6 +25,8 @@ class BillingState extends Equatable {
     this.selectedCustomer,
     this.paymentMode = 'Offline',
     this.discountAmount = 0,
+    this.gstEnabled = false,
+    this.gstRate = 18,
   });
 
   double get subtotalAmount =>
@@ -34,7 +38,16 @@ class BillingState extends Equatable {
     return discountAmount;
   }
 
-  double get totalAmount => subtotalAmount - effectiveDiscountAmount;
+  double get taxableAmount => subtotalAmount - effectiveDiscountAmount;
+
+  double get gstAmount {
+    if (!gstEnabled || gstRate <= 0) return 0;
+    final baseAmount = taxableAmount;
+    if (baseAmount <= 0) return 0;
+    return (baseAmount * gstRate) / 100;
+  }
+
+  double get totalAmount => taxableAmount + gstAmount;
 
   BillingState copyWith({
     List<CartItem>? cartItems,
@@ -49,6 +62,8 @@ class BillingState extends Equatable {
     bool clearCustomer = false,
     String? paymentMode,
     double? discountAmount,
+    bool? gstEnabled,
+    double? gstRate,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -62,6 +77,8 @@ class BillingState extends Equatable {
           clearCustomer ? null : (selectedCustomer ?? this.selectedCustomer),
       paymentMode: paymentMode ?? this.paymentMode,
       discountAmount: discountAmount ?? this.discountAmount,
+      gstEnabled: gstEnabled ?? this.gstEnabled,
+      gstRate: gstRate ?? this.gstRate,
     );
   }
 
@@ -77,5 +94,7 @@ class BillingState extends Equatable {
         selectedCustomer,
         paymentMode,
         discountAmount,
+        gstEnabled,
+        gstRate,
       ];
 }

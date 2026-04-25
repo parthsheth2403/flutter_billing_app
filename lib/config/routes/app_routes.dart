@@ -3,8 +3,10 @@ import '../../core/auth/shop_access_controller.dart';
 import '../../features/auth/presentation/pages/shop_activation_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/billing/presentation/pages/home_page.dart';
+import '../../features/product/presentation/pages/products_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
 import '../../features/product/presentation/pages/add_product_page.dart';
+import '../../features/product/presentation/pages/add_product_using_qr_page.dart';
 import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
@@ -78,19 +80,26 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/products',
-      builder: (context, state) => const ProductListPage(),
+      builder: (context, state) => const ProductsPage(),
       routes: [
+        GoRoute(
+          path: 'list',
+          builder: (context, state) => const ProductListPage(),
+        ),
         GoRoute(
           path: 'add',
           builder: (context, state) => const AddProductPage(),
+        ),
+        GoRoute(
+          path: 'add-with-qr',
+          builder: (context, state) => const AddProductUsingQrPage(),
         ),
         GoRoute(
           path: 'edit/:id',
           builder: (context, state) {
             final product = state.extra as Product?;
             if (product == null) {
-              // If we land here without extra (e.g. deep link), go back to products for now.
-              return const ProductListPage();
+              return const ProductsPage();
             }
             return EditProductPage(product: product);
           },
